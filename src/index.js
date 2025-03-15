@@ -46,57 +46,60 @@ class HighlightIt {
 	 * @private
 	 */
 	static processElement(element, autoDetect, addCopyButton, showLanguage) {
-		let codeElement;
-		let preElement;
-		
+		let codeElement
+		let preElement
+
 		if (element.textContent) {
-			element.textContent = element.textContent.trim();
+			element.textContent = element.textContent.trim()
 		}
-		
-		if (element.tagName.toLowerCase() === 'code' && element.parentElement.tagName.toLowerCase() === 'pre') {
-			codeElement = element;
-			preElement = element.parentElement;
+
+		if (
+			element.tagName.toLowerCase() === 'code' &&
+			element.parentElement.tagName.toLowerCase() === 'pre'
+		) {
+			codeElement = element
+			preElement = element.parentElement
 		} else {
-			const content = element.textContent || '';
-			
-			const container = document.createElement('div');
-			
+			const content = element.textContent || ''
+
+			const container = document.createElement('div')
+
 			if (element.className.includes('highlight-it')) {
-				container.className = 'highlight-it highlightit-container';
+				container.className = 'highlight-it highlightit-container'
 			} else {
-				container.className = element.className;
+				container.className = element.className
 			}
-			
-			preElement = document.createElement('pre');
-			codeElement = document.createElement('code');
-			
-			codeElement.textContent = content.trim();
-			
+
+			preElement = document.createElement('pre')
+			codeElement = document.createElement('code')
+
+			codeElement.textContent = content.trim()
+
 			for (const key in element.dataset) {
-				container.dataset[key] = element.dataset[key];
-				
+				container.dataset[key] = element.dataset[key]
+
 				if (key === 'language') {
-					codeElement.dataset.language = element.dataset[key];
-					codeElement.className = `language-${element.dataset[key]}`;
+					codeElement.dataset.language = element.dataset[key]
+					codeElement.className = `language-${element.dataset[key]}`
 				}
-				
+
 				if (key === 'withLines') {
-					container.classList.add('highlightit-with-lines');
+					container.classList.add('highlightit-with-lines')
 				}
-				
+
 				if (key === 'noHeader') {
-					container.classList.add('highlightit-no-header');
+					container.classList.add('highlightit-no-header')
 				}
 			}
-			
-			preElement.appendChild(codeElement);
-			container.appendChild(preElement);
-			
-			element.parentNode.replaceChild(container, element);
-			element = codeElement;
+
+			preElement.appendChild(codeElement)
+			container.appendChild(preElement)
+
+			element.parentNode.replaceChild(container, element)
+			element = codeElement
 		}
-		
-		this.highlightElement(element, autoDetect, addCopyButton, showLanguage);
+
+		this.highlightElement(element, autoDetect, addCopyButton, showLanguage)
 	}
 
 	/**
@@ -134,12 +137,14 @@ class HighlightIt {
 		let language = null
 		let displayLabel = null
 		let filename = null
-		
+
 		const elementDataset = element.dataset
 		const containerDataset = container.dataset
-		
-		const noHeader = elementDataset.noHeader !== undefined || containerDataset.noHeader !== undefined
-		const withLines = elementDataset.withLines !== undefined || containerDataset.withLines !== undefined
+
+		const noHeader =
+			elementDataset.noHeader !== undefined || containerDataset.noHeader !== undefined
+		const withLines =
+			elementDataset.withLines !== undefined || containerDataset.withLines !== undefined
 
 		if (elementDataset.language) {
 			language = elementDataset.language
@@ -148,7 +153,7 @@ class HighlightIt {
 			language = containerDataset.language
 			displayLabel = language
 		}
-		
+
 		if (elementDataset.filename) {
 			filename = elementDataset.filename
 			language = this.getLanguageFromFilename(filename)
@@ -262,19 +267,22 @@ class HighlightIt {
 	 * @private
 	 */
 	static createCodeContainer(element) {
-		const preElement = element.parentElement;
-		
-		if (preElement.parentElement && preElement.parentElement.classList.contains('highlightit-container')) {
-			return preElement.parentElement;
+		const preElement = element.parentElement
+
+		if (
+			preElement.parentElement &&
+			preElement.parentElement.classList.contains('highlightit-container')
+		) {
+			return preElement.parentElement
 		}
-		
-		const container = document.createElement('div');
-		container.className = 'highlightit-container';
-		
-		preElement.parentNode.insertBefore(container, preElement);
-		container.appendChild(preElement);
-		
-		return container;
+
+		const container = document.createElement('div')
+		container.className = 'highlightit-container'
+
+		preElement.parentNode.insertBefore(container, preElement)
+		container.appendChild(preElement)
+
+		return container
 	}
 
 	/**
@@ -422,7 +430,6 @@ class HighlightIt {
 	 * @private
 	 */
 	static addLineNumbers(element, code) {
-		// Make sure we're working with trimmed code when adding line numbers
 		const trimmedCode = code.trim()
 		const lines = trimmedCode.split('\n')
 		const lineCount = lines.length
@@ -437,14 +444,11 @@ class HighlightIt {
 
 		lineNumbersWrapper.innerHTML = lineNumbersHtml
 
-		// Make sure we add the line numbers to the pre element and add the class to it
 		const preElement = element.parentElement
 		preElement.classList.add('highlightit-has-line-numbers')
 		preElement.prepend(lineNumbersWrapper)
 
-		// Ensure line numbers match up with the visible code lines by adjusting after rendering
 		setTimeout(() => {
-			// Get the actual rendered lines after highlight.js has processed the code
 			const renderedLineCount = element.innerHTML.split('\n').length
 			const codeHeight = element.offsetHeight
 			const lineHeight = codeHeight / renderedLineCount
