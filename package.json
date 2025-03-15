@@ -6,11 +6,11 @@
 	"jsdelivr": "dist/highlight-it.js",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/TN3W/highlight-it.git"
+		"url": "git+https://github.com/tn3w/highlight-it.git"
 	},
-	"homepage": "https://github.com/TN3W/highlight-it",
+	"homepage": "https://github.com/tn3w/highlight-it",
 	"bugs": {
-		"url": "https://github.com/TN3W/highlight-it/issues"
+		"url": "https://github.com/tn3w/highlight-it/issues"
 	},
 	"files": [
 		"dist",
@@ -44,7 +44,7 @@
 		"syntax-highlighter",
 		"code-presentation"
 	],
-	"author": "TN3W",
+	"author": "tn3w",
 	"license": "Apache-2.0",
 	"devDependencies": {
 		"@rollup/plugin-commonjs": "^28.0.3",
