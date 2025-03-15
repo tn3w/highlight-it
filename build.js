@@ -174,8 +174,13 @@ function injectCSS(css) {
 					"if (typeof window !== 'undefined') {",
 					`if (typeof window !== 'undefined') {\n  // Inject default highlight.js styles\n  injectCSS(DEFAULT_CSS);\n  ${cssVarNames ? '// Inject our custom styles\n  injectCSS(' + cssVarNames + ');' : ''}`
 				),
-			'if (typeof window !== "undefined") { window.HighlightIt = HighlightIt; window.HighlightIt.init(); }',
 			'global.HighlightIt = HighlightIt;',
+			'if (typeof window !== "undefined") { window.HighlightIt = HighlightIt; }',
+			'if (typeof document !== "undefined" && document.readyState === "loading") {',
+			'  document.addEventListener("DOMContentLoaded", function() { HighlightIt.init(); });',
+			'} else if (typeof window !== "undefined") {',
+			'  setTimeout(function() { HighlightIt.init(); }, 0);',
+			'}',
 			'})(typeof window !== "undefined" ? window : this);'
 		].join('\n\n')
 
@@ -234,7 +239,7 @@ function injectCSS(css) {
 		}
 
 		fs.writeFileSync(
-			path.resolve(distDir, 'highlight-it.min.js'),
+			path.resolve(distDir, 'highlight-it-min.js'),
 			licenseHeader + highlightJsLicense + minified.code
 		)
 
@@ -250,7 +255,7 @@ function injectCSS(css) {
 build()
 	.then(() => {
 		const { execSync } = require('child_process')
-		const files = ['highlight-it.js', 'highlight-it.min.js']
+		const files = ['highlight-it.js', 'highlight-it-min.js']
 
 		files.forEach((file) => {
 			try {

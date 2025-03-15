@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Highlight-It Demo</title>
+		<script src="dist/highlight-it-min.js"></script>
+		<style>
+			body {
+				font-family:
+					-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
+					Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+				line-height: 1.6;
+				background-color: var(--hl-background, #1e1e1e);
+				color: var(--hl-text, #d4d4d4);
+				max-width: 1000px;
+				margin: 0 auto;
+				padding: 20px;
+				transition:
+					background-color 0.3s,
+					color 0.3s;
+			}
+			h1 {
+				font-size: 2.5rem;
+				margin-block: 1rem;
+				color: var(--hl-text, #fff);
+			}
+			h2,
+			h3 {
+				margin-top: 30px;
+				margin-bottom: 15px;
+				color: var(--hl-text, #fff);
+			}
+			p {
+				margin-bottom: 1rem;
+			}
+			.demo-section {
+				margin-bottom: 40px;
+			}
+			.theme-selector {
+				display: flex;
+				gap: 10px;
+				margin-bottom: 20px;
+			}
+			.theme-selector button {
+				padding: 8px 15px;
+				border: 1px solid var(--hl-border, #2d2d2d);
+				border-radius: 4px;
+				background-color: var(--hl-header-bg, #2d2d2d);
+				color: var(--hl-text, #d4d4d4);
+				cursor: pointer;
+				font-size: 14px;
+				transition: all 0.2s;
+			}
+			.theme-selector button:hover {
+				background-color: var(--hl-hover-bg, #3d3d3d);
+			}
+			.theme-selector button.active {
+				border-color: var(--hl-copied-color, #4ec9b0);
+				box-shadow: 0 0 0 1px var(--hl-copied-color, #4ec9b0);
+			}
+		</style>
+	</head>
+	<body>
+		<h1>Highlight-It Demo</h1>
+		<p>This is a demo of the Highlight-It library for syntax highlighting.</p>
+
+		<div class="theme-selector">
+			<button data-theme="auto" class="active">Auto Theme</button>
+			<button data-theme="light">Light Theme</button>
+			<button data-theme="dark">Dark Theme</button>
+		</div>
+
+		<div class="demo-section">
+			<h2>1. Auto-detected Language</h2>
+			<p>When no language is specified, HighlightIt will automatically detect it.</p>
+			<pre><code class="highlight-it">
+def calculate_triangle_area(base, height):
+    """
+    Calculate the area of a triangle.
+    
+    Args:
+        base: The length of the base of the triangle.
+        height: The height of the triangle.
+        
+    Returns:
+        The area of the triangle.
+    """
+    area = 0.5 * base * height
+    return area
+
+# Get input from the user
+base = float(input("Enter the base of the triangle: "))
+height = float(input("Enter the height of the triangle: "))
+
+# Calculate the area
+area = calculate_triangle_area(base, height)
+
+# Print the result
+print("The area of the triangle is:", area)</code></pre>
+		</div>
+
+		<div class="demo-section">
+			<h2>2. Specified Language</h2>
+			<p>You can specify the language with data-language attribute.</p>
+			<pre><code class="highlight-it" data-language="javascript">// Calculate the area of a triangle
+function calculateTriangleArea(base, height) {
+    return 0.5 * base * height;
+}
+
+// Input values
+const base = 10;
+const height = 5;
+
+// Calculate and display the result
+const area = calculateTriangleArea(base, height);
+console.log(`The area of the triangle is: ${area}`);</code></pre>
+		</div>
+
+		<div class="demo-section">
+			<h2>3. Filename Display</h2>
+			<p>Using data-filename attribute will display the filename instead of the language.</p>
+			<pre><code class="highlight-it" data-filename="triangle.py">def calculate_triangle_area(base, height):
+    """
+    Calculate the area of a triangle.
+    """
+    return 0.5 * base * height
+
+# Example usage
+base = 10
+height = 5
+area = calculate_triangle_area(base, height)
+print(f"The area of the triangle is: {area}")</code></pre>
+		</div>
+
+		<div class="demo-section">
+			<h2>4. No Header Mode</h2>
+			<p>
+				Using data-no-header attribute will hide the header. Hover near the top-right to see
+				the copy button.
+			</p>
+			<pre><code class="highlight-it" data-no-header>function calculateTriangleArea(base, height) {
+    // Simple formula for triangle area
+    return 0.5 * base * height;
+}
+
+const result = calculateTriangleArea(6, 8);
+console.log("The area is: " + result);</code></pre>
+		</div>
+
+		<div class="demo-section">
+			<h2>5. Per-Element Theme</h2>
+			<p>
+				You can set different themes for individual code blocks using the data-theme
+				attribute.
+			</p>
+			<pre><code class="highlight-it" data-theme="light" data-language="css">/* Light theme styles */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #ffffff;
+    color: #333333;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}</code></pre>
+
+			<pre><code class="highlight-it" data-theme="dark" data-language="css">/* Dark theme styles */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+}</code></pre>
+		</div>
+
+		<div class="demo-section">
+			<h2>6. Line Numbers</h2>
+			<p>
+				Add line numbers to your code blocks with the data-with-lines attribute. Line
+				numbers are non-selectable when copying code.
+			</p>
+			<pre><code class="highlight-it" data-with-lines data-language="javascript">// This is a function that calculates factorial
+function factorial(n) {
+    // Base case
+    if (n === 0 || n === 1) {
+        return 1;
+    }
+    
+    // Recursive case
+    return n * factorial(n - 1);
+}
+
+// Example usage
+for (let i = 1; i <= 5; i++) {
+    console.log(`Factorial of ${i} is ${factorial(i)}`);
+}</code></pre>
+		</div>
+
+		<div class="demo-section">
+			<h2>7. Line Numbers with No Header</h2>
+			<p>You can combine the line numbers feature with other options like no-header.</p>
+			<pre><code class="highlight-it" data-with-lines data-no-header data-language="python">def fibonacci(n):
+    """
+    Calculate the nth number in the Fibonacci sequence
+    using dynamic programming approach
+    """
+    if n <= 0:
+        return 0
+    elif n == 1:
+        return 1
+        
+    # Initialize array to store Fibonacci numbers
+    fib = [0] * (n + 1)
+    fib[1] = 1
+    
+    # Fill the array
+    for i in range(2, n + 1):
+        fib[i] = fib[i-1] + fib[i-2]
+        
+    return fib[n]
+
+# Test with first 10 Fibonacci numbers
+for i in range(10):
+    print(f"Fibonacci({i}) = {fibonacci(i)}")</code></pre>
+		</div>
+		<script>
+			document.addEventListener('DOMContentLoaded', () => {
+				const themeButtons = document.querySelectorAll('.theme-selector button')
+
+				themeButtons.forEach((button) => {
+					button.addEventListener('click', () => {
+						themeButtons.forEach((btn) => btn.classList.remove('active'))
+
+						button.classList.add('active')
+
+						const theme = button.getAttribute('data-theme')
+
+						document.documentElement.classList.remove(
+							'highlightit-theme-light',
+							'highlightit-theme-dark',
+							'highlightit-theme-auto'
+						)
+
+						document.documentElement.classList.add(`highlightit-theme-${theme}`)
+					})
+				})
+			})
+		</script>
+	</body>
+</html>

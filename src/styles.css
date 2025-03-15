@@ -151,6 +151,10 @@
 	line-height: 1.5;
 	white-space: pre;
 	color: var(--hl-text);
+	margin-left: 0;
+}
+
+.highlightit-has-line-numbers code {
 	margin-left: 1em;
 }
 
@@ -203,6 +207,7 @@
 	font-size: 14px;
 	line-height: 1.5;
 	position: relative;
+	padding-right: 0.5em;
 }
 
 .highlightit-line-numbers::after {
@@ -222,7 +227,7 @@
 	flex: 1;
 	margin: 0;
 	border-radius: 0 !important;
-	padding-left: 16px;
+	padding-left: 0.5em;
 }
 
 .highlightit-with-lines .highlightit-line-number {
