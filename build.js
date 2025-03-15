@@ -143,13 +143,6 @@ async function build() {
 		}
 
 		const indexJsContent = processJsFile(indexJsPath)
-		const injectCssFunc = `
-function injectCSS(css) {
-  const style = document.createElement('style');
-  style.textContent = css;
-  document.head.appendChild(style);
-}`
-
 		const stylesPath = path.resolve(tempDir, 'node_modules/highlight.js/styles')
 
 		const defaultCssPath = path.resolve(stylesPath, 'default.css')
@@ -160,6 +153,13 @@ function injectCSS(css) {
 		const defaultCssVar = `const DEFAULT_CSS = "${processedDefaultCss.css.replace(/"/g, '\\"').replace(/\n/g, '')}";`
 
 		const cssVarNames = cssImports.length > 0 ? `STYLES_CSS` : ''
+
+		const injectCssFunc = `
+function injectCSS(...cssArray) {
+  const style = document.createElement('style');
+  style.textContent = cssArray.join('\\n');
+  document.head.appendChild(style);
+}`
 
 		const combinedCode = [
 			'(function(global) {',
@@ -172,7 +172,7 @@ function injectCSS(css) {
 				.replace(/import\s+['"].*?['"];?/g, '')
 				.replace(
 					"if (typeof window !== 'undefined') {",
-					`if (typeof window !== 'undefined') {\n  // Inject default highlight.js styles\n  injectCSS(DEFAULT_CSS);\n  ${cssVarNames ? '// Inject our custom styles\n  injectCSS(' + cssVarNames + ');' : ''}`
+					`if (typeof window !== 'undefined') {\n  injectCSS(DEFAULT_CSS${cssVarNames ? ', ' + cssVarNames : ''});`
 				),
 			'global.HighlightIt = HighlightIt;',
 			'if (typeof window !== "undefined") { window.HighlightIt = HighlightIt; }',
