@@ -1,6 +1,6 @@
 {
 	"name": "highlight-it",
-	"version": "0.1.2",
+	"version": "0.1.3",
 	"description": "A lightweight syntax highlighting library with themes, line numbers, and copy functionality",
 	"main": "dist/highlight-it.js",
 	"jsdelivr": "dist/highlight-it.js",
@@ -19,7 +19,7 @@
 	],
 	"scripts": {
 		"build": "node build.js",
-		"format": "prettier --write \"./**/*.{js,jsx,ts,tsx,json,css,scss,md,html}\"",
+		"format": "prettier --write \"./**/*.{js,jsx,ts,tsx,json,css,scss,md}\" \"!demo.html\"",
 		"lint": "eslint . --ext .js,.jsx,.ts,.tsx && stylelint --config .stylelintrc.mjs \"**/*.css\"",
 		"lint:js": "eslint . --ext .js,.jsx,.ts,.tsx",
 		"lint:css": "stylelint --config .stylelintrc.mjs \"**/*.css\""
