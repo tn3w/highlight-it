@@ -21,12 +21,6 @@ const licenseHeader = `/*!
  * Released under the Apache 2.0 License
  */\n`
 
-const highlightJsLicense = `/*!
- * highlight.js v11.11.1
- * Copyright (c) 2006, Ivan Sagalaev
- * Licensed under the BSD 3-Clause License
- * https://github.com/highlightjs/highlight.js/blob/main/LICENSE
- */\n`
 
 async function processCssFile(filePath, variableName) {
 	const css = fs.readFileSync(filePath, 'utf8')
@@ -83,7 +77,7 @@ async function build() {
 	const tempPackageJson = {
 		name: 'highlight-it-temp',
 		dependencies: {
-			'highlight.js': '^11.11.1'
+			'highlight.js': 'latest'
 		}
 	}
 
@@ -92,7 +86,7 @@ async function build() {
 		JSON.stringify(tempPackageJson, null, 2)
 	)
 
-	console.log('Installing highlight.js...')
+	console.log('Installing latest highlight.js...')
 	const { execSync } = require('child_process')
 	try {
 		execSync('npm install', { cwd: tempDir, stdio: 'inherit' })
@@ -100,6 +94,19 @@ async function build() {
 		console.error('Failed to install highlight.js:', error)
 		return
 	}
+
+	const hljsPackageJson = JSON.parse(
+		fs.readFileSync(path.resolve(tempDir, 'node_modules/highlight.js/package.json'), 'utf8')
+	)
+	const hljsVersion = hljsPackageJson.version
+	console.log(`Using highlight.js version ${hljsVersion}`)
+
+	const highlightJsLicense = `/*!
+ * highlight.js v${hljsVersion}
+ * Copyright (c) 2006, Ivan Sagalaev
+ * Licensed under the BSD 3-Clause License
+ * https://github.com/highlightjs/highlight.js/blob/main/LICENSE
+ */\n`
 
 	const hljsMainPath = path.resolve(tempDir, 'node_modules/highlight.js/lib/index.js')
 

@@ -1,6 +1,37 @@
-# highlight-it
+<p align="center">
+  <a href="https://github.com/librecap/librecap">
+      <picture>
+          <source height="260" media="(prefers-color-scheme: dark)" srcset="https://github.com/tn3w/highlight-it/releases/download/v0.1.4-img/highlight-dark.png">
+          <source height="260" media="(prefers-color-scheme: light)" srcset="https://github.com/tn3w/highlight-it/releases/download/v0.1.4-img/highlight-light.png">
+          <img height="260" alt="HighlightIt Logo" src="https://github.com/tn3w/highlight-it/releases/download/v0.1.4-img/highlight-light.png">
+      </picture>
+  </a>
+</p>
 
-A lightweight syntax highlighting library with themes, line numbers, and copy functionality.
+<h1 align="center">Highlight-It</h1>
+<p align="center">A lightweight syntax highlighting library with themes, line numbers, and copy functionality.</p>
+
+Example:
+
+```html
+<code class="highlight-it">
+	def greet(name):
+		"""Return a personalized greeting."""
+		return f"Hello, {name}!" # Example usage
+
+	if __name__ == "__main__":
+		print(greet("World"))
+</code>
+```
+
+Add highlight-it using this script:
+```html
+<script
+	src="https://cdn.jsdelivr.net/npm/highlight-it@0.1.5/dist/highlight-it-min.js"
+	integrity="sha512-U7N7vTZn8rx285KzoIikW9PvKD6KABzJpr5N9/+3IY9pNp2NlQ54EVrgdPud4nUg8fwgqGXbsBKmMv4CCliF2w=="
+	crossorigin="anonymous"
+></script>
+```
 
 ## Data Attributes
 
