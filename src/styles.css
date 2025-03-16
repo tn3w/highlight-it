@@ -6,7 +6,6 @@
 	--hl-badge-bg: #3d3d3d;
 	--hl-hover-bg: #3d3d3d;
 	--hl-copied-color: #4ec9b0;
-
 	--hl-keyword: #569cd6;
 	--hl-string: #ce9178;
 	--hl-comment: #6a9955;
@@ -25,7 +24,6 @@
 	--hl-badge-bg: #c0c0c0;
 	--hl-hover-bg: #d0d0d0;
 	--hl-copied-color: #0b8043;
-
 	--hl-keyword: #0000ff;
 	--hl-string: #a31515;
 	--hl-comment: #008000;
@@ -45,7 +43,6 @@
 		--hl-badge-bg: #c0c0c0;
 		--hl-hover-bg: #d0d0d0;
 		--hl-copied-color: #0b8043;
-
 		--hl-keyword: #0000ff;
 		--hl-string: #a31515;
 		--hl-comment: #008000;
@@ -58,7 +55,6 @@
 }
 
 .highlightit-container {
-	margin-bottom: 30px;
 	border-radius: 6px;
 	overflow: hidden;
 	border: 1px solid var(--hl-border);
@@ -75,7 +71,6 @@
 	--hl-badge-bg: #c0c0c0 !important;
 	--hl-hover-bg: #d0d0d0 !important;
 	--hl-copied-color: #0b8043 !important;
-
 	--hl-keyword: #0000ff !important;
 	--hl-string: #a31515 !important;
 	--hl-comment: #008000 !important;
@@ -96,7 +91,6 @@
 	--hl-badge-bg: #3d3d3d !important;
 	--hl-hover-bg: #3d3d3d !important;
 	--hl-copied-color: #4ec9b0 !important;
-
 	--hl-keyword: #569cd6 !important;
 	--hl-string: #ce9178 !important;
 	--hl-comment: #6a9955 !important;
@@ -124,7 +118,7 @@
 	border-radius: 4px;
 	font-size: 12px;
 	color: var(--hl-text);
-	font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+	font-family: SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
 }
 
 .highlightit-copy {
@@ -140,6 +134,24 @@
 	transition: all 0.2s ease;
 	height: 28px;
 	width: 28px;
+}
+
+/* Style for hidden original elements used for streaming content */
+.highlightit-original,
+[data-with-reload][style*='display: none'] {
+	position: absolute !important;
+	visibility: hidden !important;
+	height: 0 !important;
+	width: 0 !important;
+	overflow: hidden !important;
+	pointer-events: none !important;
+	z-index: -9999 !important;
+	opacity: 0 !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	border: 0 !important;
+	clip: rect(1px, 1px, 1px, 1px) !important;
+	clip-path: inset(50%) !important;
 }
 
 .highlightit-copy:hover {
@@ -275,7 +287,7 @@ html .highlightit-container[data-theme='light'] pre {
 }
 
 .highlightit-container code {
-	font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+	font-family: SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
 	font-size: 14px;
 	line-height: 1.5;
 	white-space: pre;
@@ -333,7 +345,7 @@ html .highlightit-container[data-theme='light'] pre {
 	text-align: right;
 	color: var(--hl-text);
 	opacity: 0.5;
-	font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+	font-family: SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
 	font-size: 14px;
 	line-height: 1.5;
 	position: relative;

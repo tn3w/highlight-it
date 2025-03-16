@@ -169,17 +169,11 @@ function injectCSS(...cssArray) {
 			hljsCode,
 			indexJsContent
 				.replace(/import\s+.*?from\s+['"].*?['"];?/g, '')
-				.replace(/import\s+['"].*?['"];?/g, '')
-				.replace(
-					"if (typeof window !== 'undefined') {",
-					`if (typeof window !== 'undefined') {\n  injectCSS(DEFAULT_CSS${cssVarNames ? ', ' + cssVarNames : ''});`
-				),
+				.replace(/import\s+['"].*?['"];?/g, ''),
 			'global.HighlightIt = HighlightIt;',
-			'if (typeof window !== "undefined") { window.HighlightIt = HighlightIt; }',
-			'if (typeof document !== "undefined" && document.readyState === "loading") {',
-			'  document.addEventListener("DOMContentLoaded", function() { HighlightIt.init(); });',
-			'} else if (typeof window !== "undefined") {',
-			'  setTimeout(function() { HighlightIt.init(); }, 0);',
+			'if (typeof window !== "undefined") {',
+			'  window.HighlightIt = HighlightIt;',
+			'  injectCSS(DEFAULT_CSS' + (cssVarNames ? ', ' + cssVarNames : '') + ');',
 			'}',
 			'})(typeof window !== "undefined" ? window : this);'
 		].join('\n\n')

@@ -18,6 +18,7 @@ class HighlightIt {
 	 * @param {boolean} [options.addCopyButton=true] - Whether to add a copy button to code blocks
 	 * @param {boolean} [options.showLanguage=true] - Whether to show the language label
 	 * @param {string} [options.theme='auto'] - Theme to use ('light', 'dark', or 'auto')
+	 * @param {number} [options.debounceTime=50] - Debounce time in ms for live updates (lower values = more responsive)
 	 */
 	static init(options = {}) {
 		const {
@@ -25,16 +26,20 @@ class HighlightIt {
 			autoDetect = true,
 			addCopyButton = true,
 			showLanguage = true,
-			theme = 'auto'
+			theme = 'auto',
+			debounceTime = 50
 		} = options
 
+		this.debounceTime = debounceTime
 		this.applyGlobalTheme(theme)
 
-		const elements = document.querySelectorAll(selector)
+		const elements = document.querySelectorAll(selector + ':not(.highlightit-original)')
 
 		elements.forEach((element) => {
 			this.processElement(element, autoDetect, addCopyButton, showLanguage)
 		})
+
+		this._initialized = true
 	}
 
 	/**
@@ -48,6 +53,8 @@ class HighlightIt {
 	static processElement(element, autoDetect, addCopyButton, showLanguage) {
 		let codeElement
 		let preElement
+		let originalElement = null
+		const withLiveUpdates = element.dataset.withReload !== undefined
 
 		if (element.textContent) {
 			element.textContent = element.textContent.trim()
@@ -59,8 +66,69 @@ class HighlightIt {
 		) {
 			codeElement = element
 			preElement = element.parentElement
+
+			if (withLiveUpdates) {
+				const uniqueId = 'highlightit-id-' + Math.random().toString(36).substr(2, 9)
+
+				originalElement = document.createElement('pre')
+				const originalCodeElement = document.createElement('code')
+
+				originalCodeElement.textContent = element.textContent || ''
+
+				originalElement.classList.add('highlightit-original')
+
+				if (preElement.id) {
+					originalElement.id = preElement.id
+					preElement.setAttribute('data-original-id', preElement.id)
+					preElement.id = preElement.id + '-highlighted'
+				}
+
+				originalElement.setAttribute('data-highlightit-id', uniqueId)
+				originalElement.style.display = 'none'
+
+				if (element.dataset.language) {
+					originalCodeElement.dataset.language = element.dataset.language
+				}
+
+				originalElement.appendChild(originalCodeElement)
+
+				preElement.dataset.linkedOriginal = uniqueId
+
+				preElement.classList.add('highlightit-streaming-target')
+
+				preElement.parentNode.insertBefore(originalElement, preElement)
+			}
 		} else {
 			const content = element.textContent || ''
+
+			if (withLiveUpdates) {
+				const uniqueId = 'highlightit-id-' + Math.random().toString(36).substr(2, 9)
+
+				originalElement = document.createElement('pre')
+				const originalCodeElement = document.createElement('code')
+
+				originalCodeElement.textContent = content
+				originalElement.appendChild(originalCodeElement)
+
+				originalElement.classList.add('highlightit-original')
+
+				if (element.id) {
+					originalElement.id = element.id
+					element.setAttribute('data-original-id', element.id)
+					element.id = element.id + '-highlighted'
+				}
+
+				originalElement.setAttribute('data-highlightit-id', uniqueId)
+				originalElement.style.display = 'none'
+
+				if (element.dataset.language) {
+					originalCodeElement.dataset.language = element.dataset.language
+				}
+
+				element.parentNode.insertBefore(originalElement, element)
+
+				element.setAttribute('data-linked-original', uniqueId)
+			}
 
 			const container = document.createElement('div')
 
@@ -128,6 +196,14 @@ class HighlightIt {
 	 * @param {boolean} addCopyButton - Whether to add a copy button
 	 * @param {boolean} showLanguage - Whether to show the language label
 	 * @private
+	 *
+	 * The element can have various data attributes:
+	 * - data-language: The programming language for syntax highlighting
+	 * - data-filename: Filename to display (also used to detect language)
+	 * - data-theme: Override global theme for this element ('light', 'dark', 'auto')
+	 * - data-with-lines: Add line numbers to the code block
+	 * - data-no-header: Hide the header (language label and copy button)
+	 * - data-with-reload: Enable live updates - code will be rehighlighted automatically when content changes
 	 */
 	static highlightElement(element, autoDetect, addCopyButton, showLanguage) {
 		const container = this.createCodeContainer(element)
@@ -145,6 +221,8 @@ class HighlightIt {
 			elementDataset.noHeader !== undefined || containerDataset.noHeader !== undefined
 		const withLines =
 			elementDataset.withLines !== undefined || containerDataset.withLines !== undefined
+		const withLiveUpdates =
+			elementDataset.withReload !== undefined || containerDataset.withReload !== undefined
 
 		if (elementDataset.language) {
 			language = elementDataset.language
@@ -189,6 +267,10 @@ class HighlightIt {
 
 		if (withLines) {
 			container.classList.add('highlightit-with-lines')
+		}
+
+		if (withLiveUpdates) {
+			this.setupMutationObserver(element, container, autoDetect, addCopyButton, showLanguage)
 		}
 
 		if (!language && autoDetect) {
@@ -261,6 +343,121 @@ class HighlightIt {
 	}
 
 	/**
+	 * Set up a mutation observer to watch for changes to the code element
+	 * @param {HTMLElement} element - The code element to watch
+	 * @param {HTMLElement} container - The container element
+	 * @param {boolean} autoDetect - Whether to auto-detect language
+	 * @param {boolean} addCopyButton - Whether to add a copy button
+	 * @param {boolean} showLanguage - Whether to show the language label
+	 * @private
+	 */
+	static setupMutationObserver(element, container, autoDetect, addCopyButton, showLanguage) {
+		const debounceTime = this.debounceTime || 30
+		let timeout = null
+
+		let originalElement = null
+		let linkId = null
+
+		if (element.parentElement && element.parentElement.dataset.linkedOriginal) {
+			linkId = element.parentElement.dataset.linkedOriginal
+		} else if (container && container.dataset.linkedOriginal) {
+			linkId = container.dataset.linkedOriginal
+		} else if (
+			element.parentElement &&
+			element.parentElement.getAttribute('data-linked-original')
+		) {
+			linkId = element.parentElement.getAttribute('data-linked-original')
+		} else if (container && container.getAttribute('data-linked-original')) {
+			linkId = container.getAttribute('data-linked-original')
+		}
+
+		if (linkId) {
+			originalElement = document.querySelector(
+				`.highlightit-original[data-highlightit-id="${linkId}"]`
+			)
+
+			if (!originalElement) {
+				originalElement = document.getElementById(linkId)
+			}
+		}
+
+		if (
+			!originalElement &&
+			container &&
+			container.previousSibling &&
+			container.previousSibling.classList &&
+			container.previousSibling.classList.contains('highlightit-original')
+		) {
+			originalElement = container.previousSibling
+		}
+
+		if (
+			!originalElement &&
+			element.parentElement &&
+			element.parentElement.getAttribute('data-original-id')
+		) {
+			const originalId = element.parentElement.getAttribute('data-original-id')
+			originalElement = document.getElementById(originalId)
+		} else if (!originalElement && container && container.getAttribute('data-original-id')) {
+			const originalId = container.getAttribute('data-original-id')
+			originalElement = document.getElementById(originalId)
+		}
+
+		const elementToWatch = originalElement || element
+
+		const targetElement = element
+
+		const language =
+			element.dataset.language || (element.className.match(/language-(\w+)/) || [])[1] || null
+
+		const rehighlight = () => {
+			const originalCode = elementToWatch.querySelector('code') || elementToWatch
+			const rawCode = originalCode.textContent || ''
+			const code = rawCode.trim()
+
+			if (!code || code === '') return
+
+			if (!language && autoDetect) {
+				const result = this.autoDetectLanguage(code)
+				targetElement.innerHTML = result.value
+				targetElement.classList.add(`language-${result.language || 'unknown'}`)
+
+				if (showLanguage && result.language) {
+					const header = container.querySelector('.highlightit-header')
+					if (header) {
+						const languageLabel = header.querySelector('.highlightit-language')
+						if (languageLabel) {
+							languageLabel.textContent = result.language
+						}
+					}
+				}
+			} else {
+				this.rehighlightElement(targetElement, container, language, code, showLanguage)
+				targetElement.classList.add(`language-${language || 'unknown'}`)
+			}
+		}
+
+		const observer = new MutationObserver(() => {
+			if (timeout) {
+				clearTimeout(timeout)
+			}
+
+			timeout = setTimeout(() => {
+				rehighlight()
+				timeout = null
+			}, debounceTime)
+		})
+
+		observer.observe(elementToWatch, {
+			characterData: true,
+			childList: true,
+			subtree: true
+		})
+
+		elementToWatch._highlightObserver = observer
+	}
+
+	/**
 	 * Create a styled container for code block
 	 * @param {HTMLElement} element - The code element to wrap
 	 * @returns {HTMLElement} - The container element
@@ -278,6 +475,20 @@ class HighlightIt {
 
 		const container = document.createElement('div')
 		container.className = 'highlightit-container'
+
+		if (preElement.dataset && preElement.dataset.linkedOriginal) {
+			container.dataset.linkedOriginal = preElement.dataset.linkedOriginal
+		} else if (preElement.hasAttribute('data-linked-original')) {
+			container.setAttribute(
+				'data-linked-original',
+				preElement.getAttribute('data-linked-original')
+			)
+			preElement.removeAttribute('data-linked-original')
+		}
+
+		if (preElement.hasAttribute('data-original-id')) {
+			container.setAttribute('data-original-id', preElement.getAttribute('data-original-id'))
+		}
 
 		preElement.parentNode.insertBefore(container, preElement)
 		container.appendChild(preElement)
@@ -499,10 +710,122 @@ class HighlightIt {
 			})
 		}, 0)
 	}
+
+	static rehighlightElement(element, container, languageOrFilename, code, showLanguage) {
+		const cleanedCode = code.trim()
+
+		let language = null
+		let displayLabel = null
+
+		if (languageOrFilename) {
+			language = this.getLanguageFromFilename(languageOrFilename) || languageOrFilename
+			displayLabel = languageOrFilename
+		}
+
+		let result
+		try {
+			if (language) {
+				result = hljs.highlight(cleanedCode, { language })
+			} else {
+				result = { value: this.escapeHtml(cleanedCode) }
+			}
+		} catch (error) {
+			console.warn(`HighlightIt: Error highlighting with language ${language}`, error)
+			result = { value: this.escapeHtml(cleanedCode) }
+		}
+
+		element.innerHTML = result.value
+
+		if (container.classList.contains('highlightit-with-lines')) {
+			const oldLineNumbers = container.querySelector('.highlightit-line-numbers')
+			if (oldLineNumbers) {
+				oldLineNumbers.remove()
+			}
+			this.addLineNumbers(element, cleanedCode)
+		}
+
+		const copyButton =
+			container.querySelector('.highlightit-copy') ||
+			container.querySelector('.highlightit-floating-copy')
+		if (copyButton) {
+			copyButton.replaceWith(this.createCopyButton(cleanedCode))
+		}
+
+		if (showLanguage && language) {
+			const header = container.querySelector('.highlightit-header')
+			if (header) {
+				const languageLabel = header.querySelector('.highlightit-language')
+				if (languageLabel) {
+					languageLabel.textContent = displayLabel || language
+				}
+			}
+		}
+	}
 }
 
 export default HighlightIt
 
-if (typeof window !== 'undefined') {
-	window.HighlightIt = HighlightIt
+/**
+ * Highlight a new element that wasn't present when the library was initialized
+ * @param {HTMLElement} element - The element to highlight
+ * @param {Object} options - Configuration options
+ * @param {boolean} [options.autoDetect=true] - Whether to auto-detect language if not specified
+ * @param {boolean} [options.addCopyButton=true] - Whether to add a copy button
+ * @param {boolean} [options.showLanguage=true] - Whether to show the language label
+ * @param {boolean} [options.withLines=false] - Whether to add line numbers
+ * @param {boolean} [options.withReload=false] - Whether to enable live updates
+ * @param {boolean} [options.noHeader=false] - Whether to hide the header
+ * @param {string} [options.language] - The language to use for syntax highlighting
+ * @param {string} [options.theme] - Theme override for this element ('light', 'dark', or 'auto')
+ * @returns {HTMLElement} - The highlighted element container
+ */
+HighlightIt.highlight = function (element, options = {}) {
+	if (
+		!element ||
+		element.classList.contains('highlightit-original') ||
+		element.closest('.highlightit-container') ||
+		(element.parentElement && element.parentElement.classList.contains('highlightit-container'))
+	) {
+		console.warn('HighlightIt: Element is already highlighted or is a hidden original element')
+		return element
+	}
+
+	const {
+		autoDetect = true,
+		addCopyButton = true,
+		showLanguage = true,
+		withLines = false,
+		withReload = false,
+		noHeader = false,
+		language,
+		theme
+	} = options
+
+	if (withLines) {
+		element.dataset.withLines = ''
+	}
+
+	if (withReload) {
+		element.dataset.withReload = ''
+	}
+
+	if (noHeader) {
+		element.dataset.noHeader = ''
+	}
+
+	if (language) {
+		element.dataset.language = language
+	}
+
+	if (theme) {
+		element.dataset.theme = theme
+	}
+
+	this.processElement(element, autoDetect, addCopyButton, showLanguage)
+
+	const container =
+		element.closest('.highlightit-container') ||
+		(element.parentElement && element.parentElement.closest('.highlightit-container'))
+
+	return container || element
 }

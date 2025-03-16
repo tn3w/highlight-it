@@ -59,21 +59,95 @@
 				border-color: var(--hl-copied-color, #4ec9b0);
 				box-shadow: 0 0 0 1px var(--hl-copied-color, #4ec9b0);
 			}
+			
+			/* Streaming demo styles */
+			.controls {
+				margin: 1.5rem 0;
+				display: flex;
+				gap: 10px;
+			}
+			
+			.controls button {
+				padding: 8px 16px;
+				background-color: var(--hl-header-bg, #2d2d2d);
+				color: var(--hl-text, #d4d4d4);
+				border: 1px solid var(--hl-border, #3d3d3d);
+				border-radius: 4px;
+				cursor: pointer;
+				font-size: 14px;
+				transition: background-color 0.2s ease;
+			}
+			
+			.controls button:hover {
+				background-color: var(--hl-hover-bg, #3d3d3d);
+			}
+			
+			.controls button:disabled {
+				background-color: var(--hl-disabled-bg, #1a1a1a);
+				border-color: var(--hl-disabled-border, #222);
+				color: var(--hl-disabled-text, #666);
+				cursor: not-allowed;
+			}
+			
+			.status {
+				font-size: 14px;
+				margin-top: 10px;
+				color: var(--hl-text, #d4d4d4);
+			}
+			
+			.highlight-it:not(.highlightit-container) {
+				visibility: hidden;
+			}
+			
+			.progress-container {
+				width: 100%;
+				height: 8px;
+				background-color: #333;
+				border-radius: 4px;
+				margin-top: 10px;
+				overflow: hidden;
+			}
+			
+			.progress-bar {
+				height: 100%;
+				width: 0;
+				background-color: #4a9eff;
+				transition: width 0.2s ease;
+				border-radius: 4px;
+			}
+			
+			.stream-stats {
+				display: flex;
+				justify-content: space-between;
+				margin-top: 5px;
+				font-size: 12px;
+				color: var(--hl-text, #d4d4d4);
+				margin-bottom: 1rem;
+			}
+			
+			#speed-selector {
+				background-color: var(--hl-header-bg, #2d2d2d);
+				color: var(--hl-text, #d4d4d4);
+				border: 1px solid var(--hl-border, #3d3d3d);
+				border-radius: 3px;
+				padding: 2px 5px;
+			}
 		</style>
 	</head>
 	<body>
 		<h1>Highlight-It Demo</h1>
 		<p>This is a demo of the Highlight-It library for syntax highlighting.</p>
 
+		<p>The style can be globally changed by adding a class to the <code>html</code> element. Use these buttons to test the different themes:</p>
 		<div class="theme-selector">
-			<button data-theme="auto" class="active">Auto Theme</button>
-			<button data-theme="light">Light Theme</button>
-			<button data-theme="dark">Dark Theme</button>
+			<button data-theme="auto" class="active">Auto Theme (<code>highlightit-theme-auto</code>)</button>
+			<button data-theme="light">Light Theme (<code>highlightit-theme-light</code>)</button>
+			<button data-theme="dark">Dark Theme (<code>highlightit-theme-dark</code>)</button>
 		</div>
 
 		<div class="demo-section">
 			<h2>1. Auto-detected Language</h2>
-			<p>When no language is specified, HighlightIt will automatically detect it.</p>
+			<p>HighlightIt automatically detects the programming language when <code>data-language</code> is not specified. This works for most common languages, making it easy to highlight code without extra configuration.</p>
 			<code class="highlight-it">
 def greet(name):
 	"""Return a personalized greeting."""
@@ -86,8 +160,8 @@ if __name__ == "__main__":
 		</div>
 
 		<div class="demo-section">
-			<h2>2. Specified Language</h2>
-			<p>You can specify the language with data-language attribute.</p>
+			<h2>2. Specified Language (<code>data-language</code>)</h2>
+			<p>Use the <code>data-language</code> attribute to explicitly specify the programming language for syntax highlighting. This is useful when you want to ensure the correct highlighting regardless of auto-detection.</p>
 			<code class="highlight-it" data-language="javascript">
 // Calculate the area of a triangle
 function calculateTriangleArea(base, height) {
@@ -105,8 +179,8 @@ console.log(`The area of the triangle is: ${area}`);
 		</div>
 
 		<div class="demo-section">
-			<h2>3. Filename Display</h2>
-			<p>Using data-filename attribute will display the filename instead of the language.</p>
+			<h2>3. Filename Display (<code>data-filename</code>)</h2>
+			<p>The <code>data-filename</code> attribute displays a filename in the header instead of the language name and automatically detects the language from the file extension. This is useful for indicating which file the code belongs to.</p>
 			<code class="highlight-it" data-filename="triangle.py">
 def calculate_triangle_area(base, height):
     """
@@ -123,10 +197,9 @@ print(f"The area of the triangle is: {area}")
 		</div>
 
 		<div class="demo-section">
-			<h2>4. No Header Mode</h2>
+			<h2>4. No Header Mode (<code>data-no-header</code>)</h2>
 			<p>
-				Using data-no-header attribute will hide the header. Hover near the top-right to see
-				the copy button.
+				The <code>data-no-header</code> attribute removes the header bar completely, hiding the language label while keeping the copy button as a floating element. Hover near the top-right corner to see the copy button. This creates a cleaner, more minimal appearance for your code blocks.
 			</p>
 			<code class="highlight-it" data-no-header>
 function calculateTriangleArea(base, height) {
@@ -140,10 +213,12 @@ console.log("The area is: " + result);
 		</div>
 
 		<div class="demo-section">
-			<h2>5. Per-Element Theme</h2>
+			<h2>5. Per-Element Theme (<code>data-theme</code>)</h2>
 			<p>
-				You can set different themes for individual code blocks using the data-theme
-				attribute.
+				The <code>data-theme</code> attribute sets the theme to 'light', 'dark', or 'auto' for individual code blocks. This allows you to have different themes for different code blocks on the same page, regardless of the global theme setting.
+			</p>
+			<p>
+				Light theme (<code>data-theme="light"</code>)
 			</p>
 			<code class="highlight-it" data-theme="light" data-language="css">
 /* Light theme styles */
@@ -158,6 +233,9 @@ console.log("The area is: " + result);
 }
 			</code>
 
+			<p style="margin-top: 2rem;">
+				Dark theme (<code>data-theme="dark"</code>)
+			</p>
 			<code class="highlight-it" data-theme="dark" data-language="css">
 /* Dark theme styles */
 .container {
@@ -173,10 +251,9 @@ console.log("The area is: " + result);
 		</div>
 
 		<div class="demo-section">
-			<h2>6. Line Numbers</h2>
+			<h2>6. Line Numbers (<code>data-with-lines</code>)</h2>
 			<p>
-				Add line numbers to your code blocks with the data-with-lines attribute. Line
-				numbers are non-selectable when copying code.
+				The <code>data-with-lines</code> attribute adds line numbers to your code blocks. These line numbers are non-selectable when copying code, ensuring that users only copy the actual code content. This feature is helpful for code reference and discussions.
 			</p>
 			<code class="highlight-it" data-with-lines data-language="javascript">
 // This is a function that calculates factorial
@@ -198,8 +275,8 @@ for (let i = 1; i <= 5; i++) {
 		</div>
 
 		<div class="demo-section">
-			<h2>7. Line Numbers with No Header</h2>
-			<p>You can combine the line numbers feature with other options like no-header.</p>
+			<h2>7. Line Numbers with No Header (<code>data-with-lines</code> + <code>data-no-header</code>)</h2>
+			<p>You can combine multiple attributes like <code>data-with-lines</code> and <code>data-no-header</code> to create a custom display. This example shows line numbers with no header bar, giving a clean look while maintaining line reference capabilities.</p>
 			<code class="highlight-it" data-with-lines data-no-header data-language="python">
 def quicksort(arr):
     """
@@ -225,8 +302,60 @@ sorted_numbers = quicksort(numbers)
 print("Sorted array:", sorted_numbers)
 			</code>
 		</div>
+
+		<!-- Streaming Demo Section -->
+		<div class="demo-section">
+			<h2>8. Code Streaming Demo (<code>data-with-reload</code>)</h2>
+			<p>
+				The <code>data-with-reload</code> attribute enables live updates, automatically rehighlighting code when content changes. This is particularly useful for applications that stream code responses in real-time. The original code element is preserved while the highlighted version is displayed and updated dynamically.
+			</p>
+			
+			<div class="controls">
+				<button id="startBtn">Start Streaming</button>
+				<button id="pauseBtn" disabled>Pause</button>
+				<button id="resetBtn">Reset</button>
+			</div>
+			
+			<div id="status" class="status">Ready to stream.</div>
+			<div class="progress-container">
+				<div id="progress" class="progress-bar"></div>
+			</div>
+			<div class="stream-stats">
+				<span id="current-line">Line: 0/0</span>
+				<span id="speed-control">
+					Speed: 
+					<select id="speed-selector">
+						<option value="300">Slow</option>
+						<option value="150" selected>Medium</option>
+						<option value="50">Fast</option>
+					</select>
+				</span>
+			</div>
+			
+			<!-- The code element with data-with-reload attribute -->
+			<pre id="python-code" class="highlight-it" data-language="python" data-with-reload data-with-lines>
+				# Python code will be streamed here
+			</pre>
+		</div>
+
+		<!-- Dynamic Element Highlighting Example -->
+		<div class="demo-section">
+			<h2>9. Dynamic Element Highlighting (<code>HighlightIt.highlight()</code>)</h2>
+			<p>
+				This example demonstrates how to programmatically highlight dynamically created elements using the <code>HighlightIt.highlight()</code> method. This approach allows you to create and customize code blocks on the fly with options like <code>withLines</code>, <code>withReload</code>, <code>addCopyButton</code>, and more.
+			</p>
+			<div class="controls">
+				<button id="addElementBtn">Add New Code Block</button>
+				<button id="clearElementsBtn">Clear All</button>
+			</div>
+			<div id="dynamicContainer" style="margin-top: 1rem;"></div>
+		</div>
 		<script>
 			document.addEventListener('DOMContentLoaded', () => {
+				HighlightIt.init({
+					debounceTime: 40
+				});
+
 				const themeButtons = document.querySelectorAll('.theme-selector button')
 
 				themeButtons.forEach((button) => {
@@ -246,6 +375,279 @@ print("Sorted array:", sorted_numbers)
 						document.documentElement.classList.add(`highlightit-theme-${theme}`)
 					})
 				})
+				
+				// Streaming demo code
+				const pythonCode = `# Python Fibonacci Sequence Generator
+
+def fibonacci(n):
+    """Generate the Fibonacci sequence up to n terms."""
+    fib_sequence = [0, 1]
+    
+    # Generate the sequence
+    for i in range(2, n):
+        fib_sequence.append(fib_sequence[i-1] + fib_sequence[i-2])
+    
+    return fib_sequence
+
+# Test the function with different values
+def test_fibonacci():
+    # Test with n = 10
+    result = fibonacci(10)
+    print(f"First 10 Fibonacci numbers: {result}")
+    
+    # Calculate sum of the sequence
+    total = sum(result)
+    print(f"Sum of the first 10 Fibonacci numbers: {total}")
+    
+    # Get the ratio of consecutive terms (approaches golden ratio)
+    for i in range(len(result) - 1, 0, -1):
+        ratio = result[i] / result[i-1] if result[i-1] != 0 else 0
+        print(f"Ratio of term {i+1}/{i}: {ratio:.6f}")
+
+# Main execution
+if __name__ == "__main__":
+    test_fibonacci()
+    print("Fibonacci sequence calculation complete!")`;
+
+				const lines = pythonCode.split('\n');
+				const totalLines = lines.length;
+				let currentLine = 0;
+				let interval;
+				let isPaused = false;
+				
+				let streamSpeed = parseInt(document.getElementById('speed-selector').value);
+				
+				const startBtn = document.getElementById('startBtn');
+				const pauseBtn = document.getElementById('pauseBtn');
+				const resetBtn = document.getElementById('resetBtn');
+				const statusEl = document.getElementById('status');
+				const progressBar = document.getElementById('progress');
+				const currentLineEl = document.getElementById('current-line');
+				const speedSelector = document.getElementById('speed-selector');
+				
+				function updateLineCounter() {
+					currentLineEl.textContent = `Line: ${currentLine}/${totalLines}`;
+					
+					const progressPercent = (currentLine / totalLines) * 100;
+					progressBar.style.width = `${progressPercent}%`;
+				}
+				
+				speedSelector.addEventListener('change', function() {
+					streamSpeed = parseInt(this.value);
+					
+					if (!isPaused && interval) {
+						clearInterval(interval);
+						startStreaming();
+					}
+				});
+				
+				resetStream();
+				
+				function getCodeElement() {
+					return document.getElementById('python-code');
+				}
+				
+				function startStreaming() {
+					interval = setInterval(function() {
+						if (currentLine < totalLines) {
+							const codeElement = getCodeElement();
+							let content = codeElement.textContent || '';
+							
+							if (currentLine === 0) {
+								content = lines[currentLine];
+							} else {
+								content += '\n' + lines[currentLine];
+							}
+							
+							codeElement.textContent = content;
+							
+							currentLine++;
+							updateLineCounter();
+							statusEl.textContent = `Streaming line ${currentLine} of ${totalLines}...`;
+						} else {
+							clearInterval(interval);
+							statusEl.textContent = 'Streaming complete!';
+							startBtn.disabled = true;
+							pauseBtn.disabled = true;
+						}
+					}, streamSpeed);
+				}
+				
+				startBtn.addEventListener('click', function() {
+					if (currentLine >= totalLines) {
+						resetStream();
+					}
+					
+					startBtn.disabled = true;
+					pauseBtn.disabled = false;
+					isPaused = false;
+					
+					statusEl.textContent = 'Streaming...';
+					startStreaming();
+				});
+				
+				pauseBtn.addEventListener('click', function() {
+					clearInterval(interval);
+					isPaused = true;
+					startBtn.disabled = false;
+					pauseBtn.disabled = true;
+					statusEl.textContent = 'Streaming paused.';
+				});
+				
+				resetBtn.addEventListener('click', resetStream);
+				
+				function resetStream() {
+					clearInterval(interval);
+					currentLine = 0;
+					
+					const codeElement = getCodeElement();
+					if (codeElement) {
+						codeElement.textContent = '# Python code will be streamed here';
+					}
+					
+					startBtn.disabled = false;
+					pauseBtn.disabled = true;
+					statusEl.textContent = 'Ready to stream.';
+					updateLineCounter();
+				}
+				
+				// Dynamic Element Highlighting Example
+				const addElementBtn = document.getElementById('addElementBtn');
+				const clearElementsBtn = document.getElementById('clearElementsBtn');
+				const dynamicContainer = document.getElementById('dynamicContainer');
+				
+				// Counter for unique IDs
+				let counter = 1;
+				
+				// Sample code snippets
+				const codeSnippets = [
+					{
+						language: 'javascript',
+						code: `// JavaScript Example
+function factorial(n) {
+    if (n <= 1) return 1;
+    return n * factorial(n - 1);
+}
+
+console.log(factorial(5)); // 120`
+					},
+					{
+						language: 'python',
+						code: `# Python Example
+def quick_sort(arr):
+    if len(arr) <= 1:
+        return arr
+    pivot = arr[len(arr) // 2]
+    left = [x for x in arr if x < pivot]
+    middle = [x for x in arr if x == pivot]
+    right = [x for x in arr if x > pivot]
+    return quick_sort(left) + middle + quick_sort(right)
+
+print(quick_sort([3, 6, 8, 10, 1, 2, 1]))`
+					},
+					{
+						language: 'html',
+						code: `<!-- HTML Example -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sample Page</title>
+</head>
+<body>
+    <h1>Hello World</h1>
+    <p>This is a paragraph.</p>
+</body>
+</html>`
+					},
+					{
+						language: 'css',
+						code: `/* CSS Example */
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f0f0f0;
+}
+
+.box {
+    width: 200px;
+    height: 200px;
+    background-color: #3498db;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}`
+					}
+				];
+				
+				// Add element button click handler
+				addElementBtn.addEventListener('click', function() {
+					// Get a random code snippet
+					const snippet = codeSnippets[Math.floor(Math.random() * codeSnippets.length)];
+					
+					// Create a new pre element
+					const preElement = document.createElement('pre');
+					const uniqueId = `dynamic-code-${counter++}`;
+					preElement.id = uniqueId;
+					preElement.textContent = snippet.code;
+					
+					// Append to container
+					dynamicContainer.appendChild(preElement);
+					
+					// Highlight the element with options
+					const highlightedElement = HighlightIt.highlight(preElement, {
+						language: snippet.language,
+						withLines: true,
+						withReload: true,
+						addCopyButton: true,
+						showLanguage: true,
+						autoDetect: true
+					});
+					
+					// Add a message
+					const message = document.createElement('div');
+					message.style.marginBottom = '20px';
+					message.style.fontSize = '14px';
+					message.style.color = 'var(--hl-text, #d4d4d4)';
+					message.innerHTML = `<strong>Element created:</strong> ID: ${uniqueId} with ${snippet.language} highlighting`;
+					
+					// Add a button to update content (demonstrating withReload functionality)
+					const updateButton = document.createElement('button');
+					updateButton.textContent = 'Update Content';
+					updateButton.style.marginLeft = '10px';
+					updateButton.style.fontSize = '12px';
+					updateButton.style.padding = '3px 8px';
+					updateButton.style.backgroundColor = 'var(--hl-header-bg, #2d2d2d)';
+					updateButton.style.color = 'var(--hl-text, #d4d4d4)';
+					updateButton.style.border = '1px solid var(--hl-border, #3d3d3d)';
+					updateButton.style.borderRadius = '4px';
+					updateButton.style.cursor = 'pointer';
+					updateButton.addEventListener('click', function() {
+						// Update the original element's content
+						const originalElement = document.getElementById(uniqueId);
+						if (originalElement) {
+							// Add a timestamp to the code
+							const timestamp = new Date().toLocaleTimeString();
+							const updatedCode = snippet.code + `\n\n// Updated at: ${timestamp}`;
+							originalElement.textContent = updatedCode;
+							
+							// Update the button text to show it was updated
+							updateButton.textContent = 'Updated!';
+							setTimeout(() => {
+								updateButton.textContent = 'Update Content';
+							}, 1000);
+						}
+					});
+					
+					message.appendChild(updateButton);
+					dynamicContainer.appendChild(message);
+				});
+				
+				// Clear elements button click handler
+				clearElementsBtn.addEventListener('click', function() {
+					dynamicContainer.innerHTML = '';
+					counter = 1;
+				});
 			})
 		</script>
 	</body>
