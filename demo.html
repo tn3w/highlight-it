@@ -75,13 +75,8 @@
 			<h2>1. Auto-detected Language</h2>
 			<p>When no language is specified, HighlightIt will automatically detect it.</p>
 			<code class="highlight-it">
-def greet(name):
-	"""Return a personalized greeting."""
-	return f"Hello, {name}!"
-
-# Example usage
-if __name__ == "__main__":
-	print(greet("World"))
+				def greet(name): """Return a personalized greeting.""" return f"Hello, {name}!" #
+				Example usage if __name__ == "__main__": print(greet("World"))
 			</code>
 		</div>
 
@@ -89,18 +84,10 @@ if __name__ == "__main__":
 			<h2>2. Specified Language</h2>
 			<p>You can specify the language with data-language attribute.</p>
 			<code class="highlight-it" data-language="javascript">
-// Calculate the area of a triangle
-function calculateTriangleArea(base, height) {
-    return 0.5 * base * height;
-}
-
-// Input values
-const base = 10;
-const height = 5;
-
-// Calculate and display the result
-const area = calculateTriangleArea(base, height);
-console.log(`The area of the triangle is: ${area}`);
+				// Calculate the area of a triangle function calculateTriangleArea(base, height) {
+				return 0.5 * base * height; } // Input values const base = 10; const height = 5; //
+				Calculate and display the result const area = calculateTriangleArea(base, height);
+				console.log(`The area of the triangle is: ${area}`);
 			</code>
 		</div>
 
@@ -108,17 +95,9 @@ console.log(`The area of the triangle is: ${area}`);
 			<h2>3. Filename Display</h2>
 			<p>Using data-filename attribute will display the filename instead of the language.</p>
 			<code class="highlight-it" data-filename="triangle.py">
-def calculate_triangle_area(base, height):
-    """
-    Calculate the area of a triangle.
-    """
-    return 0.5 * base * height
-
-# Example usage
-base = 10
-height = 5
-area = calculate_triangle_area(base, height)
-print(f"The area of the triangle is: {area}")
+				def calculate_triangle_area(base, height): """ Calculate the area of a triangle. """
+				return 0.5 * base * height # Example usage base = 10 height = 5 area =
+				calculate_triangle_area(base, height) print(f"The area of the triangle is: {area}")
 			</code>
 		</div>
 
@@ -129,13 +108,9 @@ print(f"The area of the triangle is: {area}")
 				the copy button.
 			</p>
 			<code class="highlight-it" data-no-header>
-function calculateTriangleArea(base, height) {
-    // Simple formula for triangle area
-    return 0.5 * base * height;
-}
-
-const result = calculateTriangleArea(6, 8);
-console.log("The area is: " + result);
+				function calculateTriangleArea(base, height) { // Simple formula for triangle area
+				return 0.5 * base * height; } const result = calculateTriangleArea(6, 8);
+				console.log("The area is: " + result);
 			</code>
 		</div>
 
@@ -146,29 +121,15 @@ console.log("The area is: " + result);
 				attribute.
 			</p>
 			<code class="highlight-it" data-theme="light" data-language="css">
-/* Light theme styles */
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-    background-color: #ffffff;
-    color: #333333;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
-}
+				/* Light theme styles */ .container { max-width: 1200px; margin: 0 auto; padding:
+				20px; background-color: #ffffff; color: #333333; box-shadow: 0 2px 10px rgba(0, 0,
+				0, 0.1); border-radius: 8px; }
 			</code>
 
 			<code class="highlight-it" data-theme="dark" data-language="css">
-/* Dark theme styles */
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-    background-color: #1e1e1e;
-    color: #d4d4d4;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-    border-radius: 8px;
-}
+				/* Dark theme styles */ .container { max-width: 1200px; margin: 0 auto; padding:
+				20px; background-color: #1e1e1e; color: #d4d4d4; box-shadow: 0 2px 10px rgba(0, 0,
+				0, 0.3); border-radius: 8px; }
 			</code>
 		</div>
 
@@ -179,21 +140,10 @@ console.log("The area is: " + result);
 				numbers are non-selectable when copying code.
 			</p>
 			<code class="highlight-it" data-with-lines data-language="javascript">
-// This is a function that calculates factorial
-function factorial(n) {
-    // Base case
-    if (n === 0 || n === 1) {
-        return 1;
-    }
-    
-    // Recursive case
-    return n * factorial(n - 1);
-}
-
-// Example usage
-for (let i = 1; i <= 5; i++) {
-    console.log(`Factorial of ${i} is ${factorial(i)}`);
-}
+				// This is a function that calculates factorial function factorial(n) { // Base case
+				if (n === 0 || n === 1) { return 1; } // Recursive case return n * factorial(n - 1);
+				} // Example usage for (let i = 1; i <= 5; i++) { console.log(`Factorial of ${i} is
+				${factorial(i)}`); }
 			</code>
 		</div>
 
@@ -201,28 +151,13 @@ for (let i = 1; i <= 5; i++) {
 			<h2>7. Line Numbers with No Header</h2>
 			<p>You can combine the line numbers feature with other options like no-header.</p>
 			<code class="highlight-it" data-with-lines data-no-header data-language="python">
-def quicksort(arr):
-    """
-    Implementation of quicksort algorithm
-    with random pivot selection
-    """
-    if len(arr) <= 1:
-        return arr
-        
-    # Choose pivot and partition array
-    pivot = arr[len(arr) // 2]
-    left = [x for x in arr if x < pivot]
-    middle = [x for x in arr if x == pivot]
-    right = [x for x in arr if x > pivot]
-    
-    # Recursively sort left and right partitions
-    return quicksort(left) + middle + quicksort(right)
-
-# Test with sample array
-numbers = [64, 34, 25, 12, 22, 11, 90]
-print("Original array:", numbers)
-sorted_numbers = quicksort(numbers)
-print("Sorted array:", sorted_numbers)
+				def quicksort(arr): """ Implementation of quicksort algorithm with random pivot
+				selection """ if len(arr) <= 1: return arr # Choose pivot and partition array pivot
+				= arr[len(arr) // 2] left = [x for x in arr if x < pivot] middle = [x for x in arr
+				if x == pivot] right = [x for x in arr if x > pivot] # Recursively sort left and
+				right partitions return quicksort(left) + middle + quicksort(right) # Test with
+				sample array numbers = [64, 34, 25, 12, 22, 11, 90] print("Original array:",
+				numbers) sorted_numbers = quicksort(numbers) print("Sorted array:", sorted_numbers)
 			</code>
 		</div>
 		<script>

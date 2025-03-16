@@ -192,7 +192,7 @@ class HighlightIt {
 		}
 
 		if (!language && autoDetect) {
-			const result = hljs.highlightAuto(code)
+			const result = this.autoDetectLanguage(code)
 			language = result.language
 
 			element.innerHTML = result.value
@@ -232,7 +232,7 @@ class HighlightIt {
 			} catch (error) {
 				console.warn(`HighlightIt: Error highlighting with language ${language}`, error)
 				if (autoDetect) {
-					const result = hljs.highlightAuto(code)
+					const result = this.autoDetectLanguage(code)
 					element.innerHTML = result.value
 					element.classList.add(`language-${result.language || 'unknown'}`)
 
@@ -400,6 +400,46 @@ class HighlightIt {
 		}
 
 		return extensionMap[extension] || null
+	}
+
+	/**
+	 * Auto-detect language with priority given to popular languages
+	 * @param {string} code - The code to detect the language of
+	 * @returns {Object} - The highlight.js result object with language and value properties
+	 * @private
+	 */
+	static autoDetectLanguage(code) {
+		const result = hljs.highlightAuto(code)
+
+		const popularLanguages = [
+			'javascript',
+			'typescript',
+			'python',
+			'java',
+			'html',
+			'css',
+			'scss',
+			'php',
+			'ruby',
+			'go',
+			'rust',
+			'c',
+			'cpp',
+			'csharp',
+			'bash',
+			'json',
+			'markdown',
+			'yaml',
+			'xml'
+		]
+
+		const popularResult = hljs.highlightAuto(code, popularLanguages)
+
+		if (popularResult.language) {
+			return popularResult
+		}
+
+		return result
 	}
 
 	/**
