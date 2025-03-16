@@ -74,36 +74,22 @@
 		<div class="demo-section">
 			<h2>1. Auto-detected Language</h2>
 			<p>When no language is specified, HighlightIt will automatically detect it.</p>
-			<pre><code class="highlight-it">
-def calculate_triangle_area(base, height):
-    """
-    Calculate the area of a triangle.
-    
-    Args:
-        base: The length of the base of the triangle.
-        height: The height of the triangle.
-        
-    Returns:
-        The area of the triangle.
-    """
-    area = 0.5 * base * height
-    return area
+			<code class="highlight-it">
+def greet(name):
+	"""Return a personalized greeting."""
+	return f"Hello, {name}!"
 
-# Get input from the user
-base = float(input("Enter the base of the triangle: "))
-height = float(input("Enter the height of the triangle: "))
-
-# Calculate the area
-area = calculate_triangle_area(base, height)
-
-# Print the result
-print("The area of the triangle is:", area)</code></pre>
+# Example usage
+if __name__ == "__main__":
+	print(greet("World"))
+			</code>
 		</div>
 
 		<div class="demo-section">
 			<h2>2. Specified Language</h2>
 			<p>You can specify the language with data-language attribute.</p>
-			<pre><code class="highlight-it" data-language="javascript">// Calculate the area of a triangle
+			<code class="highlight-it" data-language="javascript">
+// Calculate the area of a triangle
 function calculateTriangleArea(base, height) {
     return 0.5 * base * height;
 }
@@ -114,13 +100,15 @@ const height = 5;
 
 // Calculate and display the result
 const area = calculateTriangleArea(base, height);
-console.log(`The area of the triangle is: ${area}`);</code></pre>
+console.log(`The area of the triangle is: ${area}`);
+			</code>
 		</div>
 
 		<div class="demo-section">
 			<h2>3. Filename Display</h2>
 			<p>Using data-filename attribute will display the filename instead of the language.</p>
-			<pre><code class="highlight-it" data-filename="triangle.py">def calculate_triangle_area(base, height):
+			<code class="highlight-it" data-filename="triangle.py">
+def calculate_triangle_area(base, height):
     """
     Calculate the area of a triangle.
     """
@@ -130,7 +118,8 @@ console.log(`The area of the triangle is: ${area}`);</code></pre>
 base = 10
 height = 5
 area = calculate_triangle_area(base, height)
-print(f"The area of the triangle is: {area}")</code></pre>
+print(f"The area of the triangle is: {area}")
+			</code>
 		</div>
 
 		<div class="demo-section">
@@ -139,13 +128,15 @@ print(f"The area of the triangle is: {area}")</code></pre>
 				Using data-no-header attribute will hide the header. Hover near the top-right to see
 				the copy button.
 			</p>
-			<pre><code class="highlight-it" data-no-header>function calculateTriangleArea(base, height) {
+			<code class="highlight-it" data-no-header>
+function calculateTriangleArea(base, height) {
     // Simple formula for triangle area
     return 0.5 * base * height;
 }
 
 const result = calculateTriangleArea(6, 8);
-console.log("The area is: " + result);</code></pre>
+console.log("The area is: " + result);
+			</code>
 		</div>
 
 		<div class="demo-section">
@@ -154,7 +145,8 @@ console.log("The area is: " + result);</code></pre>
 				You can set different themes for individual code blocks using the data-theme
 				attribute.
 			</p>
-			<pre><code class="highlight-it" data-theme="light" data-language="css">/* Light theme styles */
+			<code class="highlight-it" data-theme="light" data-language="css">
+/* Light theme styles */
 .container {
     max-width: 1200px;
     margin: 0 auto;
@@ -163,9 +155,11 @@ console.log("The area is: " + result);</code></pre>
     color: #333333;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     border-radius: 8px;
-}</code></pre>
+}
+			</code>
 
-			<pre><code class="highlight-it" data-theme="dark" data-language="css">/* Dark theme styles */
+			<code class="highlight-it" data-theme="dark" data-language="css">
+/* Dark theme styles */
 .container {
     max-width: 1200px;
     margin: 0 auto;
@@ -174,7 +168,8 @@ console.log("The area is: " + result);</code></pre>
     color: #d4d4d4;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
     border-radius: 8px;
-}</code></pre>
+}
+			</code>
 		</div>
 
 		<div class="demo-section">
@@ -183,7 +178,8 @@ console.log("The area is: " + result);</code></pre>
 				Add line numbers to your code blocks with the data-with-lines attribute. Line
 				numbers are non-selectable when copying code.
 			</p>
-			<pre><code class="highlight-it" data-with-lines data-language="javascript">// This is a function that calculates factorial
+			<code class="highlight-it" data-with-lines data-language="javascript">
+// This is a function that calculates factorial
 function factorial(n) {
     // Base case
     if (n === 0 || n === 1) {
@@ -197,35 +193,37 @@ function factorial(n) {
 // Example usage
 for (let i = 1; i <= 5; i++) {
     console.log(`Factorial of ${i} is ${factorial(i)}`);
-}</code></pre>
+}
+			</code>
 		</div>
 
 		<div class="demo-section">
 			<h2>7. Line Numbers with No Header</h2>
 			<p>You can combine the line numbers feature with other options like no-header.</p>
-			<pre><code class="highlight-it" data-with-lines data-no-header data-language="python">def fibonacci(n):
+			<code class="highlight-it" data-with-lines data-no-header data-language="python">
+def quicksort(arr):
     """
-    Calculate the nth number in the Fibonacci sequence
-    using dynamic programming approach
+    Implementation of quicksort algorithm
+    with random pivot selection
     """
-    if n <= 0:
-        return 0
-    elif n == 1:
-        return 1
+    if len(arr) <= 1:
+        return arr
         
-    # Initialize array to store Fibonacci numbers
-    fib = [0] * (n + 1)
-    fib[1] = 1
+    # Choose pivot and partition array
+    pivot = arr[len(arr) // 2]
+    left = [x for x in arr if x < pivot]
+    middle = [x for x in arr if x == pivot]
+    right = [x for x in arr if x > pivot]
     
-    # Fill the array
-    for i in range(2, n + 1):
-        fib[i] = fib[i-1] + fib[i-2]
-        
-    return fib[n]
+    # Recursively sort left and right partitions
+    return quicksort(left) + middle + quicksort(right)
 
-# Test with first 10 Fibonacci numbers
-for i in range(10):
-    print(f"Fibonacci({i}) = {fibonacci(i)}")</code></pre>
+# Test with sample array
+numbers = [64, 34, 25, 12, 22, 11, 90]
+print("Original array:", numbers)
+sorted_numbers = quicksort(numbers)
+print("Sorted array:", sorted_numbers)
+			</code>
 		</div>
 		<script>
 			document.addEventListener('DOMContentLoaded', () => {

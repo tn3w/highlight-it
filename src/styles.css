@@ -19,7 +19,7 @@
 
 .highlightit-theme-light {
 	--hl-background: #ffffff;
-	--hl-border: #e0e0e0;
+	--hl-border: #cccccc;
 	--hl-header-bg: #e0e0e0;
 	--hl-text: #333333;
 	--hl-badge-bg: #c0c0c0;
@@ -39,7 +39,7 @@
 @media (prefers-color-scheme: light) {
 	:root.highlightit-theme-auto {
 		--hl-background: #ffffff;
-		--hl-border: #e0e0e0;
+		--hl-border: #cccccc;
 		--hl-header-bg: #e0e0e0;
 		--hl-text: #333333;
 		--hl-badge-bg: #c0c0c0;
@@ -63,6 +63,48 @@
 	overflow: hidden;
 	border: 1px solid var(--hl-border);
 	position: relative;
+}
+
+.highlightit-container[data-theme="light"],
+.highlightit-container pre[data-theme="light"],
+.highlightit-container code[data-theme="light"] {
+	--hl-background: #ffffff !important;
+	--hl-border: #cccccc !important;
+	--hl-header-bg: #e0e0e0 !important;
+	--hl-text: #333333 !important;
+	--hl-badge-bg: #c0c0c0 !important;
+	--hl-hover-bg: #d0d0d0 !important;
+	--hl-copied-color: #0b8043 !important;
+
+	--hl-keyword: #0000ff !important;
+	--hl-string: #a31515 !important;
+	--hl-comment: #008000 !important;
+	--hl-function: #795e26 !important;
+	--hl-number: #098658 !important;
+	--hl-class: #267f99 !important;
+	--hl-params: #001080 !important;
+	--hl-built-in: #0070c1 !important;
+}
+
+.highlightit-container[data-theme="dark"],
+.highlightit-container pre[data-theme="dark"],
+.highlightit-container code[data-theme="dark"] {
+	--hl-background: #1e1e1e !important;
+	--hl-border: #2d2d2d !important;
+	--hl-header-bg: #2d2d2d !important;
+	--hl-text: #d4d4d4 !important;
+	--hl-badge-bg: #3d3d3d !important;
+	--hl-hover-bg: #3d3d3d !important;
+	--hl-copied-color: #4ec9b0 !important;
+
+	--hl-keyword: #569cd6 !important;
+	--hl-string: #ce9178 !important;
+	--hl-comment: #6a9955 !important;
+	--hl-function: #dcdcaa !important;
+	--hl-number: #b5cea8 !important;
+	--hl-class: #4ec9b0 !important;
+	--hl-params: #9cdcfe !important;
+	--hl-built-in: #4ec9b0 !important;
 }
 
 .highlightit-header {
@@ -141,6 +183,92 @@
 	padding: 16px;
 }
 
+.highlightit-container pre::-webkit-scrollbar {
+	width: 10px;
+	height: 10px;
+}
+
+:root:not(.highlightit-theme-light) .highlightit-container pre::-webkit-scrollbar-track,
+.highlightit-theme-dark .highlightit-container pre::-webkit-scrollbar-track {
+	background: #2d2d2d;
+	border-radius: 4px;
+}
+
+:root:not(.highlightit-theme-light) .highlightit-container pre::-webkit-scrollbar-thumb,
+.highlightit-theme-dark .highlightit-container pre::-webkit-scrollbar-thumb {
+	background: #3d3d3d;
+	border-radius: 4px;
+}
+
+:root:not(.highlightit-theme-light) .highlightit-container pre::-webkit-scrollbar-thumb:hover,
+.highlightit-theme-dark .highlightit-container pre::-webkit-scrollbar-thumb:hover {
+	background: #4d4d4d;
+}
+
+:root.highlightit-theme-light .highlightit-container pre::-webkit-scrollbar-track {
+	background: #e0e0e0;
+	border-radius: 4px;
+}
+
+:root.highlightit-theme-light .highlightit-container pre::-webkit-scrollbar-thumb {
+	background: #c0c0c0;
+	border-radius: 4px;
+}
+
+:root.highlightit-theme-light .highlightit-container pre::-webkit-scrollbar-thumb:hover,
+.highlightit-container[data-theme="light"] pre::-webkit-scrollbar-thumb:hover {
+	background: #a0a0a0;
+}
+
+:root:not(.highlightit-theme-light) .highlightit-container pre,
+.highlightit-theme-dark .highlightit-container pre {
+	scrollbar-width: thin;
+	scrollbar-color: #3d3d3d #2d2d2d;
+}
+
+:root.highlightit-theme-light .highlightit-container pre {
+	scrollbar-width: thin;
+	scrollbar-color: #c0c0c0 #e0e0e0;
+}
+
+html .highlightit-container[data-theme="dark"] pre::-webkit-scrollbar-track {
+	background: #2d2d2d !important;
+	border-radius: 4px;
+}
+
+html .highlightit-container[data-theme="dark"] pre::-webkit-scrollbar-thumb {
+	background: #3d3d3d !important;
+	border-radius: 4px;
+}
+
+html .highlightit-container[data-theme="dark"] pre::-webkit-scrollbar-thumb:hover {
+	background: #4d4d4d !important;
+}
+
+html .highlightit-container[data-theme="dark"] pre {
+	scrollbar-width: thin !important;
+	scrollbar-color: #3d3d3d #2d2d2d !important;
+}
+
+html .highlightit-container[data-theme="light"] pre::-webkit-scrollbar-track {
+	background: #e0e0e0 !important;
+	border-radius: 4px;
+}
+
+html .highlightit-container[data-theme="light"] pre::-webkit-scrollbar-thumb {
+	background: #c0c0c0 !important;
+	border-radius: 4px;
+}
+
+html .highlightit-container[data-theme="light"] pre::-webkit-scrollbar-thumb:hover {
+	background: #a0a0a0 !important;
+}
+
+html .highlightit-container[data-theme="light"] pre {
+	scrollbar-width: thin !important;
+	scrollbar-color: #c0c0c0 #e0e0e0 !important;
+}
+
 .highlightit-no-header pre {
 	border-radius: 6px;
 }
@@ -152,6 +280,8 @@
 	white-space: pre;
 	color: var(--hl-text);
 	margin-left: 0;
+	tab-size: 4;
+	-moz-tab-size: 4;
 }
 
 .highlightit-has-line-numbers code {
@@ -199,7 +329,6 @@
 	user-select: none;
 	-webkit-user-select: none;
 	-moz-user-select: none;
-	min-width: 2.5em;
 	text-align: right;
 	color: var(--hl-text);
 	opacity: 0.5;
@@ -231,10 +360,16 @@
 }
 
 .highlightit-with-lines .highlightit-line-number {
-	padding-right: 12px;
+	padding-right: 1em;
 	margin-bottom: 0;
 	height: 1.5em;
 	display: flex;
 	align-items: center;
 	justify-content: flex-end;
+}
+
+.highlightit-theme-light .highlightit-line-numbers,
+:root.highlightit-theme-auto.light-mode .highlightit-line-numbers,
+.highlightit-container[data-theme="light"] .highlightit-line-numbers {
+	border-right-color: #cccccc !important;
 }
