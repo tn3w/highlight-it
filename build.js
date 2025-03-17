@@ -442,28 +442,16 @@ async function build() {
 
 		const cssVariables = await Promise.all(cssVariablePromises)
 
-		const stylesPath = path.resolve(tempDir, 'node_modules/highlight.js/styles')
-		const defaultCssPath = path.resolve(stylesPath, 'default.css')
-		const defaultCss = fs.readFileSync(defaultCssPath, 'utf8')
-
-		const processedDefaultCss = await postcss([cssnano()]).process(defaultCss, {
-			from: defaultCssPath
-		})
-		const defaultCssVar = `const DEFAULT_CSS = "${processedDefaultCss.css.replace(/"/g, '\\"').replace(/\n/g, '')}";`
-
-		const cssVarNames = cssImports.length > 0 ? `STYLES_CSS` : ''
-
 		const injectCssFunc = `
-function injectCSS(...cssArray) {
+function injectCSS(css) {
   const style = document.createElement('style');
-  style.textContent = cssArray.join('\\n');
+  style.textContent = css;
   document.head.appendChild(style);
 }`
 
 		const combinedCode = [
 			'(function(global) {',
 			...cssVariables,
-			defaultCssVar,
 			injectCssFunc,
 			hljsCode,
 			indexJsContent
@@ -472,7 +460,7 @@ function injectCSS(...cssArray) {
 			'global.HighlightIt = HighlightIt;',
 			'if (typeof window !== "undefined") {',
 			'  window.HighlightIt = HighlightIt;',
-			'  injectCSS(DEFAULT_CSS' + (cssVarNames ? ', ' + cssVarNames : '') + ');',
+			'  injectCSS(STYLES_CSS);',
 			'}',
 			'})(typeof window !== "undefined" ? window : this);'
 		].join('\n\n')

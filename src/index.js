@@ -17,6 +17,8 @@ class HighlightIt {
 	 * @param {boolean} [options.autoDetect=true] - Whether to auto-detect language if not specified
 	 * @param {boolean} [options.addCopyButton=true] - Whether to add a copy button to code blocks
 	 * @param {boolean} [options.showLanguage=true] - Whether to show the language label
+	 * @param {boolean} [options.addHeader=true] - Whether to add the header section to code blocks
+	 * @param {boolean} [options.addLines=false] - Whether to add line numbers to code blocks
 	 * @param {string} [options.theme='auto'] - Theme to use ('light', 'dark', or 'auto')
 	 * @param {number} [options.debounceTime=50] - Debounce time in ms for live updates (lower values = more responsive)
 	 */
@@ -26,6 +28,8 @@ class HighlightIt {
 			autoDetect = true,
 			addCopyButton = true,
 			showLanguage = true,
+			addHeader = true,
+			addLines = false,
 			theme = 'auto',
 			debounceTime = 50
 		} = options
@@ -36,7 +40,14 @@ class HighlightIt {
 		const elements = document.querySelectorAll(selector + ':not(.highlightit-original)')
 
 		elements.forEach((element) => {
-			this.processElement(element, autoDetect, addCopyButton, showLanguage)
+			this.processElement(
+				element,
+				autoDetect,
+				addCopyButton,
+				showLanguage,
+				addHeader,
+				addLines
+			)
 		})
 
 		this._initialized = true
@@ -48,9 +59,11 @@ class HighlightIt {
 	 * @param {boolean} autoDetect - Whether to auto-detect language
 	 * @param {boolean} addCopyButton - Whether to add a copy button
 	 * @param {boolean} showLanguage - Whether to show the language label
+	 * @param {boolean} addHeader - Whether to add header section
+	 * @param {boolean} addLines - Whether to add line numbers
 	 * @private
 	 */
-	static processElement(element, autoDetect, addCopyButton, showLanguage) {
+	static processElement(element, autoDetect, addCopyButton, showLanguage, addHeader, addLines) {
 		let codeElement
 		let preElement
 		let originalElement = null
@@ -167,7 +180,12 @@ class HighlightIt {
 			element = codeElement
 		}
 
-		this.highlightElement(element, autoDetect, addCopyButton, showLanguage)
+		if (addLines || element.dataset.withLines !== undefined) {
+			const container = this.createCodeContainer(element)
+			container.classList.add('highlightit-with-lines')
+		}
+
+		this.highlightElement(element, autoDetect, addCopyButton, showLanguage, addHeader)
 	}
 
 	/**
@@ -195,6 +213,7 @@ class HighlightIt {
 	 * @param {boolean} autoDetect - Whether to auto-detect language
 	 * @param {boolean} addCopyButton - Whether to add a copy button
 	 * @param {boolean} showLanguage - Whether to show the language label
+	 * @param {boolean} addHeader - Whether to add header section
 	 * @private
 	 *
 	 * The element can have various data attributes:
@@ -203,9 +222,10 @@ class HighlightIt {
 	 * - data-theme: Override global theme for this element ('light', 'dark', 'auto')
 	 * - data-with-lines: Add line numbers to the code block
 	 * - data-no-header: Hide the header (language label and copy button)
+	 * - data-no-copy: Hide the copy button
 	 * - data-with-reload: Enable live updates - code will be rehighlighted automatically when content changes
 	 */
-	static highlightElement(element, autoDetect, addCopyButton, showLanguage) {
+	static highlightElement(element, autoDetect, addCopyButton, showLanguage, addHeader) {
 		const container = this.createCodeContainer(element)
 
 		const code = (element.textContent || '').trim()
@@ -218,11 +238,16 @@ class HighlightIt {
 		const containerDataset = container.dataset
 
 		const noHeader =
-			elementDataset.noHeader !== undefined || containerDataset.noHeader !== undefined
+			!addHeader ||
+			elementDataset.noHeader !== undefined ||
+			containerDataset.noHeader !== undefined
 		const withLines =
 			elementDataset.withLines !== undefined || containerDataset.withLines !== undefined
 		const withLiveUpdates =
 			elementDataset.withReload !== undefined || containerDataset.withReload !== undefined
+		const noCopy = elementDataset.noCopy !== undefined || containerDataset.noCopy !== undefined
+
+		const shouldAddCopyButton = addCopyButton && !noCopy
 
 		if (elementDataset.language) {
 			language = elementDataset.language
@@ -254,12 +279,17 @@ class HighlightIt {
 			}
 		}
 
-		if ((showLanguage || addCopyButton) && !noHeader) {
-			const header = this.createCodeHeader(displayLabel, code, addCopyButton, showLanguage)
+		if ((showLanguage || shouldAddCopyButton) && addHeader && !noHeader) {
+			const header = this.createCodeHeader(
+				displayLabel,
+				code,
+				shouldAddCopyButton,
+				showLanguage
+			)
 			container.prepend(header)
 		} else if (noHeader) {
 			container.classList.add('highlightit-no-header')
-			if (addCopyButton) {
+			if (shouldAddCopyButton) {
 				const floatingCopy = this.createFloatingCopyButton(code)
 				container.appendChild(floatingCopy)
 			}
@@ -270,7 +300,13 @@ class HighlightIt {
 		}
 
 		if (withLiveUpdates) {
-			this.setupMutationObserver(element, container, autoDetect, addCopyButton, showLanguage)
+			this.setupMutationObserver(
+				element,
+				container,
+				autoDetect,
+				shouldAddCopyButton,
+				showLanguage
+			)
 		}
 
 		if (!language && autoDetect) {
@@ -772,9 +808,9 @@ export default HighlightIt
  * @param {boolean} [options.autoDetect=true] - Whether to auto-detect language if not specified
  * @param {boolean} [options.addCopyButton=true] - Whether to add a copy button
  * @param {boolean} [options.showLanguage=true] - Whether to show the language label
- * @param {boolean} [options.withLines=false] - Whether to add line numbers
+ * @param {boolean} [options.addHeader=true] - Whether to add a header section
+ * @param {boolean} [options.addLines=false] - Whether to add line numbers
  * @param {boolean} [options.withReload=false] - Whether to enable live updates
- * @param {boolean} [options.noHeader=false] - Whether to hide the header
  * @param {string} [options.language] - The language to use for syntax highlighting
  * @param {string} [options.theme] - Theme override for this element ('light', 'dark', or 'auto')
  * @returns {HTMLElement} - The highlighted element container
@@ -794,14 +830,14 @@ HighlightIt.highlight = function (element, options = {}) {
 		autoDetect = true,
 		addCopyButton = true,
 		showLanguage = true,
-		withLines = false,
+		addHeader = true,
+		addLines = false,
 		withReload = false,
-		noHeader = false,
 		language,
 		theme
 	} = options
 
-	if (withLines) {
+	if (addLines) {
 		element.dataset.withLines = ''
 	}
 
@@ -809,8 +845,12 @@ HighlightIt.highlight = function (element, options = {}) {
 		element.dataset.withReload = ''
 	}
 
-	if (noHeader) {
+	if (!addHeader) {
 		element.dataset.noHeader = ''
+	}
+
+	if (!addCopyButton) {
+		element.dataset.noCopy = ''
 	}
 
 	if (language) {
@@ -821,7 +861,7 @@ HighlightIt.highlight = function (element, options = {}) {
 		element.dataset.theme = theme
 	}
 
-	this.processElement(element, autoDetect, addCopyButton, showLanguage)
+	this.processElement(element, autoDetect, addCopyButton, showLanguage, addHeader, addLines)
 
 	const container =
 		element.closest('.highlightit-container') ||

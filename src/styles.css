@@ -14,6 +14,30 @@
 	--hl-class: #4ec9b0;
 	--hl-params: #9cdcfe;
 	--hl-built-in: #4ec9b0;
+	/* Additional colors for extended syntax highlighting */
+	--hl-tag: #569cd6;
+	--hl-attr: #9cdcfe;
+	--hl-variable: #9cdcfe;
+	--hl-property: #9cdcfe;
+	--hl-operator: #d4d4d4;
+	--hl-punctuation: #d4d4d4;
+	--hl-regexp: #d16969;
+	--hl-doctype: #808080;
+	--hl-meta: #808080;
+	--hl-name: #569cd6;
+	--hl-selector: #d7ba7d;
+	--hl-attr-value: #ce9178;
+	--hl-constant: #4fc1ff;
+	--hl-symbol: #b5cea8;
+	--hl-important: #569cd6;
+	--hl-deleted: #ce9178;
+	--hl-inserted: #b5cea8;
+	--hl-type: #4ec9b0;
+	--hl-literal: #569cd6;
+	--hl-link: #9cdcfe;
+	--hl-title-function: #dcdcaa;
+	--hl-title-class: #4ec9b0;
+	--hl-title-namespace: #4ec9b0;
 }
 
 .highlightit-theme-light {
@@ -32,6 +56,30 @@
 	--hl-class: #267f99;
 	--hl-params: #001080;
 	--hl-built-in: #0070c1;
+	/* Additional colors for extended syntax highlighting - light theme */
+	--hl-tag: #800000;
+	--hl-attr: #ff0000;
+	--hl-variable: #001080;
+	--hl-property: #001080;
+	--hl-operator: #000000;
+	--hl-punctuation: #000000;
+	--hl-regexp: #811f3f;
+	--hl-doctype: #808080;
+	--hl-meta: #808080;
+	--hl-name: #800000;
+	--hl-selector: #800000;
+	--hl-attr-value: #0000ff;
+	--hl-constant: #0070c1;
+	--hl-symbol: #000000;
+	--hl-important: #0000ff;
+	--hl-deleted: #a31515;
+	--hl-inserted: #098658;
+	--hl-type: #267f99;
+	--hl-literal: #0000ff;
+	--hl-link: #0000ff;
+	--hl-title-function: #795e26;
+	--hl-title-class: #267f99;
+	--hl-title-namespace: #267f99;
 }
 
 @media (prefers-color-scheme: light) {
@@ -51,6 +99,30 @@
 		--hl-class: #267f99;
 		--hl-params: #001080;
 		--hl-built-in: #0070c1;
+		/* Additional colors for extended syntax highlighting - auto light theme */
+		--hl-tag: #800000;
+		--hl-attr: #ff0000;
+		--hl-variable: #001080;
+		--hl-property: #001080;
+		--hl-operator: #000000;
+		--hl-punctuation: #000000;
+		--hl-regexp: #811f3f;
+		--hl-doctype: #808080;
+		--hl-meta: #808080;
+		--hl-name: #800000;
+		--hl-selector: #800000;
+		--hl-attr-value: #0000ff;
+		--hl-constant: #0070c1;
+		--hl-symbol: #000000;
+		--hl-important: #0000ff;
+		--hl-deleted: #a31515;
+		--hl-inserted: #098658;
+		--hl-type: #267f99;
+		--hl-literal: #0000ff;
+		--hl-link: #0000ff;
+		--hl-title-function: #795e26;
+		--hl-title-class: #267f99;
+		--hl-title-namespace: #267f99;
 	}
 }
 
@@ -79,6 +151,30 @@
 	--hl-class: #267f99 !important;
 	--hl-params: #001080 !important;
 	--hl-built-in: #0070c1 !important;
+	/* Additional colors for theme override - light */
+	--hl-tag: #800000 !important;
+	--hl-attr: #ff0000 !important;
+	--hl-variable: #001080 !important;
+	--hl-property: #001080 !important;
+	--hl-operator: #000000 !important;
+	--hl-punctuation: #000000 !important;
+	--hl-regexp: #811f3f !important;
+	--hl-doctype: #808080 !important;
+	--hl-meta: #808080 !important;
+	--hl-name: #800000 !important;
+	--hl-selector: #800000 !important;
+	--hl-attr-value: #0000ff !important;
+	--hl-constant: #0070c1 !important;
+	--hl-symbol: #000000 !important;
+	--hl-important: #0000ff !important;
+	--hl-deleted: #a31515 !important;
+	--hl-inserted: #098658 !important;
+	--hl-type: #267f99 !important;
+	--hl-literal: #0000ff !important;
+	--hl-link: #0000ff !important;
+	--hl-title-function: #795e26 !important;
+	--hl-title-class: #267f99 !important;
+	--hl-title-namespace: #267f99 !important;
 }
 
 .highlightit-container[data-theme='dark'],
@@ -99,6 +195,30 @@
 	--hl-class: #4ec9b0 !important;
 	--hl-params: #9cdcfe !important;
 	--hl-built-in: #4ec9b0 !important;
+	/* Additional colors for theme override - dark */
+	--hl-tag: #569cd6 !important;
+	--hl-attr: #9cdcfe !important;
+	--hl-variable: #9cdcfe !important;
+	--hl-property: #9cdcfe !important;
+	--hl-operator: #d4d4d4 !important;
+	--hl-punctuation: #d4d4d4 !important;
+	--hl-regexp: #d16969 !important;
+	--hl-doctype: #808080 !important;
+	--hl-meta: #808080 !important;
+	--hl-name: #569cd6 !important;
+	--hl-selector: #d7ba7d !important;
+	--hl-attr-value: #ce9178 !important;
+	--hl-constant: #4fc1ff !important;
+	--hl-symbol: #b5cea8 !important;
+	--hl-important: #569cd6 !important;
+	--hl-deleted: #ce9178 !important;
+	--hl-inserted: #b5cea8 !important;
+	--hl-type: #4ec9b0 !important;
+	--hl-literal: #569cd6 !important;
+	--hl-link: #9cdcfe !important;
+	--hl-title-function: #dcdcaa !important;
+	--hl-title-class: #4ec9b0 !important;
+	--hl-title-namespace: #4ec9b0 !important;
 }
 
 .highlightit-header {
@@ -301,6 +421,7 @@ html .highlightit-container[data-theme='light'] pre {
 	margin-left: 1em;
 }
 
+/* Base syntax highlighting classes */
 .hljs-keyword {
 	color: var(--hl-keyword);
 }
@@ -329,6 +450,211 @@ html .highlightit-container[data-theme='light'] pre {
 	color: var(--hl-built-in);
 }
 
+/* Enhanced syntax highlighting classes for different languages */
+/* HTML/XML */
+.hljs-tag {
+	color: var(--hl-tag);
+}
+.hljs-name {
+	color: var(--hl-name);
+}
+.hljs-attr {
+	color: var(--hl-attr);
+}
+.hljs-attribute {
+	color: var(--hl-attr);
+}
+.hljs-attr-value {
+	color: var(--hl-attr-value);
+}
+.hljs-doctype {
+	color: var(--hl-doctype);
+	font-style: italic;
+}
+.hljs-doctag {
+	color: var(--hl-doctype);
+}
+
+/* Common programming elements */
+.hljs-variable {
+	color: var(--hl-variable);
+}
+.hljs-property {
+	color: var(--hl-property);
+}
+.hljs-operator {
+	color: var(--hl-operator);
+}
+.hljs-punctuation {
+	color: var(--hl-punctuation);
+}
+.hljs-regexp {
+	color: var(--hl-regexp);
+}
+.hljs-meta {
+	color: var(--hl-meta);
+	font-style: italic;
+}
+.hljs-selector {
+	color: var(--hl-selector);
+}
+.hljs-constant {
+	color: var(--hl-constant);
+	font-weight: bold;
+}
+.hljs-symbol {
+	color: var(--hl-symbol);
+}
+.hljs-important {
+	color: var(--hl-important);
+	font-weight: bold;
+}
+.hljs-type {
+	color: var(--hl-type);
+}
+.hljs-literal {
+	color: var(--hl-literal);
+}
+.hljs-link {
+	color: var(--hl-link);
+	text-decoration: underline;
+}
+
+/* Diff highlighting */
+.hljs-deleted {
+	color: var(--hl-deleted);
+	background-color: rgba(255, 0, 0, 0.1);
+}
+.hljs-inserted {
+	color: var(--hl-inserted);
+	background-color: rgba(0, 255, 0, 0.1);
+}
+
+/* Title refinements */
+.hljs-title.function_ {
+	color: var(--hl-title-function);
+}
+.hljs-title.class_ {
+	color: var(--hl-title-class);
+}
+.hljs-title.namespace {
+	color: var(--hl-title-namespace);
+}
+
+/* CSS-specific */
+.hljs-selector-tag {
+	color: var(--hl-tag);
+}
+.hljs-selector-id {
+	color: var(--hl-selector);
+}
+.hljs-selector-class {
+	color: var(--hl-selector);
+}
+.hljs-selector-attr {
+	color: var(--hl-attr);
+}
+.hljs-selector-pseudo {
+	color: var(--hl-selector);
+	font-style: italic;
+}
+
+/* JavaScript-specific */
+.hljs-template-variable {
+	color: var(--hl-variable);
+	font-style: italic;
+}
+.hljs-subst {
+	color: var(--hl-variable);
+}
+
+/* Markdown-specific */
+.hljs-section {
+	color: var(--hl-keyword);
+	font-weight: bold;
+}
+.hljs-bullet {
+	color: var(--hl-operator);
+}
+.hljs-emphasis {
+	font-style: italic;
+}
+.hljs-strong {
+	font-weight: bold;
+}
+.hljs-quote {
+	color: var(--hl-string);
+	font-style: italic;
+}
+.hljs-code {
+	color: var(--hl-class);
+	background-color: rgba(0, 0, 0, 0.05);
+	padding: 0.1em 0.2em;
+	border-radius: 3px;
+}
+
+/* SQL-specific */
+.hljs-keyword.operator {
+	color: var(--hl-operator);
+}
+
+/* JSON-specific */
+.hljs-attr {
+	color: var(--hl-attr);
+}
+
+/* Shell/Bash-specific */
+.hljs-variable.language_ {
+	color: var(--hl-params);
+	font-style: italic;
+}
+.hljs-built_in.shell {
+	color: var(--hl-keyword);
+}
+
+/* Ruby-specific */
+.hljs-symbol.instance {
+	color: var(--hl-symbol);
+}
+.hljs-symbol.class_ {
+	color: var(--hl-class);
+}
+
+/* Additional language support */
+.language-html .hljs-tag,
+.language-xml .hljs-tag {
+	color: var(--hl-tag);
+}
+
+.language-css .hljs-property {
+	color: var(--hl-property);
+}
+
+.language-javascript .hljs-keyword,
+.language-js .hljs-keyword {
+	color: var(--hl-keyword);
+}
+
+.language-typescript .hljs-type,
+.language-ts .hljs-type {
+	color: var(--hl-type);
+}
+
+.language-php .hljs-variable {
+	color: var(--hl-variable);
+}
+
+/* Allow for better readability in certain contexts */
+.language-diff .hljs-deletion {
+	color: var(--hl-deleted);
+	background-color: rgba(255, 0, 0, 0.1);
+}
+.language-diff .hljs-addition {
+	color: var(--hl-inserted);
+	background-color: rgba(0, 255, 0, 0.1);
+}
+
+/* Line numbers styling remains the same */
 .highlightit-has-line-numbers {
 	display: flex;
 	overflow: hidden;

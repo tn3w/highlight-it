@@ -29,8 +29,8 @@ Add highlight-it using this script:
 
 ```html
 <script
-	src="https://cdn.jsdelivr.net/npm/highlight-it@0.1.7/dist/highlight-it-min.js"
-	integrity="sha512-0HZt8H6Qz6/yF2Ap2t0ihBGlm8L2cBa8BZZwYvQNJGH9p/TN4j6ddSIW+TomZ1Ty/FB46RF/U6669V1V8MYtdg=="
+	src="https://cdn.jsdelivr.net/npm/highlight-it@0.1.8/dist/highlight-it-min.js"
+	integrity="sha512-glAnjzo4njArIlQtASClZjEz6OhefIAoms0XK1xjZHprlM/Iz0oHasVbpdDcVw2w9k2jWjark0c5PgK3bbbsMg=="
 	crossorigin="anonymous"
 ></script>
 <script>
@@ -65,6 +65,7 @@ HighlightIt supports the following data attributes to customize the appearance a
 | `data-theme`       | Sets the theme to 'light', 'dark', or 'auto' for the specific code block        | `<div class="highlight-it" data-theme="dark">const foo = 'bar';</div>`          |
 | `data-with-lines`  | Adds line numbers to the code block                                             | `<div class="highlight-it" data-with-lines>const foo = 'bar';</div>`            |
 | `data-no-header`   | Removes the header (hides language label but keeps copy button as floating)     | `<div class="highlight-it" data-no-header>const foo = 'bar';</div>`             |
+| `data-no-copy`     | Hides the copy button                                                           | `<div class="highlight-it" data-no-copy>const foo = 'bar';</div>`               |
 | `data-with-reload` | Enables live updates - code will be rehighlighted when content changes          | `<div class="highlight-it" data-with-reload data-language="javascript"></div>`  |
 
 ## Usage Example
@@ -109,6 +110,8 @@ HighlightIt.init({
 	autoDetect: true, // Auto-detect language if not specified
 	addCopyButton: true, // Add copy button to code blocks
 	showLanguage: true, // Show language label in header
+	addHeader: true, // Add header section to code blocks
+	addLines: false, // Add line numbers to code blocks
 	theme: 'auto', // Global theme (light, dark, auto)
 	debounceTime: 40 // Debounce time in ms for live updates (lower values = more responsive)
 })
@@ -131,7 +134,10 @@ document.querySelector('.container').appendChild(codeBlock)
 // Add it to HighlightIt
 HighlightIt.highlight(codeBlock, {
 	withReload: true,
-	language: 'javascript'
+	language: 'javascript',
+	addHeader: true,
+	addCopyButton: true,
+	addLines: false
 })
 
 // HighlightIt will automatically rehighlight the code
