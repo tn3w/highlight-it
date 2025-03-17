@@ -15,8 +15,13 @@ Example:
 
 ```html
 <code class="highlight-it">
-	def greet(name): """Return a personalized greeting.""" return f"Hello, {name}!" # Example usage
-	if __name__ == "__main__": print(greet("World"))
+	def greet(name):
+		"""Return a personalized greeting."""
+		return f"Hello, {name}!"
+
+	# Example usage
+	if __name__ == "__main__":
+		print(greet("World"))
 </code>
 ```
 
@@ -24,8 +29,8 @@ Add highlight-it using this script:
 
 ```html
 <script
-	src="https://cdn.jsdelivr.net/npm/highlight-it@0.1.5/dist/highlight-it-min.js"
-	integrity="sha512-emdkZZqL/a/ZaY/+NKjpEyzsKUFET5SRzDJeVMuqRkQ0mEDkBF+7tkyAHHFv59tWZ11BomW0pnLxjMrnkwyR/g=="
+	src="https://cdn.jsdelivr.net/npm/highlight-it@0.1.6/dist/highlight-it-min.js"
+	integrity="sha512-sBHdZAll/LA131M9aC3m3yHqKjvMoRVzoNLY+7ydf1GoK85sVt7s7svRpcHEq4eQ6+z3FDyOB4SsNyfFJW4atg=="
 	crossorigin="anonymous"
 ></script>
 ```
