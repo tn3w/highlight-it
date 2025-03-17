@@ -15,22 +15,33 @@ Example:
 
 ```html
 <code class="highlight-it">
-	def greet(name):
-		"""Return a personalized greeting."""
-		return f"Hello, {name}!" # Example usage
-
-	if __name__ == "__main__":
-		print(greet("World"))
+	def greet(name): """Return a personalized greeting.""" return f"Hello, {name}!" # Example usage
+	if __name__ == "__main__": print(greet("World"))
 </code>
 ```
 
 Add highlight-it using this script:
+
 ```html
 <script
 	src="https://cdn.jsdelivr.net/npm/highlight-it@0.1.5/dist/highlight-it-min.js"
-	integrity="sha512-U7N7vTZn8rx285KzoIikW9PvKD6KABzJpr5N9/+3IY9pNp2NlQ54EVrgdPud4nUg8fwgqGXbsBKmMv4CCliF2w=="
+	integrity="sha512-emdkZZqL/a/ZaY/+NKjpEyzsKUFET5SRzDJeVMuqRkQ0mEDkBF+7tkyAHHFv59tWZ11BomW0pnLxjMrnkwyR/g=="
 	crossorigin="anonymous"
 ></script>
+```
+
+## Themes and Styling
+
+Highlight-It provides comprehensive theming support by integrating all themes from [highlight.js](https://github.com/highlightjs/highlight.js/tree/main/src/styles). The library intelligently bundles related theme files (e.g. `theme-dark.css` and `theme-light.css`) into a single `theme.css` file that automatically handles both light and dark modes.
+
+### Adding Themes
+
+Include your preferred theme by adding a stylesheet link:
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight-it@latest/dist/styles/a11y.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight-it@latest/dist/styles/github.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight-it@latest/dist/styles/vs2015.min.css">
 ```
 
 ## Data Attributes
@@ -127,3 +138,42 @@ function onAiResponseChunk(codeChunk) {
 - Ensures users see properly highlighted code even during streaming
 - Works with all other HighlightIt features (themes, line numbers, etc.)
 - Debounced to optimize performance during rapid updates
+
+
+## Development
+
+1. Clone the repository
+
+```bash
+git clone https://github.com/tn3w/highlight-it.git
+```
+
+2. Install dependencies
+
+```bash
+npm install
+```
+
+3. Build the project
+
+```bash
+npm run build
+```
+
+Open `demo.html` in your browser to see the library in action.
+
+## License
+
+Copyright 2025 TN3W
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
