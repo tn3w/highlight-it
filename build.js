@@ -373,7 +373,7 @@ async function build() {
  * highlight.js v${hljsVersion}
  * Copyright (c) 2006, Ivan Sagalaev
  * Licensed under the BSD 3-Clause License
- * https:
+ * https://github.com/highlightjs/highlight.js/blob/main/LICENSE
  */\n`
 
 	const stylesDir = path.resolve(distDir, 'styles')
