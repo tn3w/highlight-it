@@ -30,11 +30,12 @@
 				--hl-disabled-bg: var(--disabled-bg);
 				--hl-disabled-border: var(--disabled-border);
 				--hl-disabled-text: var(--disabled-text);
+				
+				--theme-transition-time: 0.3s;
 			}
 			
 			.highlightit-theme-light,
-			:root.highlightit-theme-light,
-			:root.highlightit-theme-auto.light-mode {
+			:root.highlightit-theme-light {
 				--primary-color: #0066cc;
 				--primary-hover: #0055aa;
 				--accent-color: #10a37f;
@@ -56,6 +57,106 @@
 				--hl-disabled-text: var(--disabled-text);
 			}
 			
+			@media (prefers-color-scheme: light) {
+				:root.highlightit-theme-auto {
+					--primary-color: #0066cc;
+					--primary-hover: #0055aa;
+					--accent-color: #10a37f;
+					--text-color: #333333;
+					--bg-color: #f8f9fa;
+					--card-bg: #ffffff;
+					--header-bg: #f0f0f0;
+					--border-color: #dadce0;
+					--hover-bg: #e9ecef;
+					--code-bg: #f5f5f5;
+					--card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
+					
+					--disabled-bg: #e0e0e0;
+					--disabled-border: #cccccc;
+					--disabled-text: #999999;
+					
+					--hl-disabled-bg: var(--disabled-bg);
+					--hl-disabled-border: var(--disabled-border);
+					--hl-disabled-text: var(--disabled-text);
+				}
+				
+				:root.highlightit-theme-auto code {
+					background: rgba(0, 0, 0, 0.05);
+				}
+			}
+			
+			@media (prefers-color-scheme: dark) {
+				:root.highlightit-theme-auto {
+					--primary-color: #4a9eff;
+					--primary-hover: #3a7edf;
+					--accent-color: #4ec9b0;
+					--text-color: #d4d4d4;
+					--bg-color: #1e1e1e;
+					--card-bg: #252526;
+					--header-bg: #2d2d2d;
+					--border-color: #3d3d3d;
+					--hover-bg: #3d3d3d;
+					--code-bg: #1e1e1e;
+					--card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+					
+					--disabled-bg: #1a1a1a;
+					--disabled-border: #222222;
+					--disabled-text: #666666;
+					
+					--hl-disabled-bg: var(--disabled-bg);
+					--hl-disabled-border: var(--disabled-border);
+					--hl-disabled-text: var(--disabled-text);
+				}
+			}
+			
+			:root.highlightit-theme-auto.system-light-theme {
+				--primary-color: #0066cc;
+				--primary-hover: #0055aa;
+				--accent-color: #10a37f;
+				--text-color: #333333;
+				--bg-color: #f8f9fa;
+				--card-bg: #ffffff;
+				--header-bg: #f0f0f0;
+				--border-color: #dadce0;
+				--hover-bg: #e9ecef;
+				--code-bg: #f5f5f5;
+				--card-shadow: 0 2px 5px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
+				
+				--disabled-bg: #e0e0e0;
+				--disabled-border: #cccccc;
+				--disabled-text: #999999;
+				
+				--hl-disabled-bg: var(--disabled-bg);
+				--hl-disabled-border: var(--disabled-border);
+				--hl-disabled-text: var(--disabled-text);
+			}
+			
+			:root.highlightit-theme-auto.system-light-theme code {
+				background: rgba(0, 0, 0, 0.05);
+			}
+			
+			:root.highlightit-theme-auto.system-dark-theme {
+				--primary-color: #4a9eff;
+				--primary-hover: #3a7edf;
+				--accent-color: #4ec9b0;
+				--text-color: #d4d4d4;
+				--bg-color: #1e1e1e;
+				--card-bg: #252526;
+				--header-bg: #2d2d2d;
+				--border-color: #3d3d3d;
+				--hover-bg: #3d3d3d;
+				--code-bg: #1e1e1e;
+				--card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+				
+				--disabled-bg: #1a1a1a;
+				--disabled-border: #222222;
+				--disabled-text: #666666;
+				
+				--hl-disabled-bg: var(--disabled-bg);
+				--hl-disabled-border: var(--disabled-border);
+				--hl-disabled-text: var(--disabled-text);
+			}
+			
 			* {
 				box-sizing: border-box;
 				margin: 0;
@@ -71,7 +172,8 @@
 				max-width: 1100px;
 				margin: 0 auto;
 				padding: 30px 20px;
-				transition: all 0.3s ease;
+				transition: background-color var(--theme-transition-time) ease,
+							color var(--theme-transition-time) ease;
 			}
 			
 			.title {
@@ -142,8 +244,7 @@
 			}
 			
 			.highlightit-theme-light code,
-			:root.highlightit-theme-light code,
-			:root.highlightit-theme-auto.light-mode code {
+			:root.highlightit-theme-light code {
 				background: rgba(0, 0, 0, 0.05);
 			}
 			
@@ -167,12 +268,16 @@
 				border-radius: 8px;
 				border: 1px solid var(--border-color);
 				box-shadow: var(--card-shadow);
+				transition: background var(--theme-transition-time) ease,
+							border-color var(--theme-transition-time) ease,
+							box-shadow var(--theme-transition-time) ease;
 			}
 			
 			.demo-section h2 {
 				border-bottom: none;
 				padding-bottom: 0;
 				margin-top: 0;
+				transition: color var(--theme-transition-time) ease;
 			}
 			
 			hr {
@@ -180,6 +285,7 @@
 				border-top: 1px solid var(--border-color);
 				margin: 2.5rem 0;
 				opacity: 0.6;
+				transition: border-color var(--theme-transition-time) ease;
 			}
 			
 			.content-overview {
@@ -851,6 +957,12 @@ function overrideSettings() {
 
 		<script>
 			document.addEventListener('DOMContentLoaded', () => {
+				const THEME_STORAGE_KEY = 'highlightit-theme-preference';
+				const STYLE_STORAGE_KEY = 'highlightit-style-preference';
+				
+				const storedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'auto';
+				const storedStyle = localStorage.getItem(STYLE_STORAGE_KEY) || 'default';
+				
 				HighlightIt.init({
 					debounceTime: 40
 				});
@@ -858,6 +970,94 @@ function overrideSettings() {
 				const styleSelector = document.getElementById('style-selector');
 				const currentStyleInfo = document.getElementById('current-style-info');
 				let currentStyleLink = null;
+				
+				function detectColorScheme() {
+					return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+				}
+				
+				function applySystemTheme() {
+					const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+					if (document.documentElement.classList.contains('highlightit-theme-auto')) {
+						console.log(`Auto theme mode: System prefers ${prefersDark ? 'dark' : 'light'} mode`);
+						
+						document.documentElement.classList.remove('system-light-theme', 'system-dark-theme');
+						document.documentElement.classList.add(prefersDark ? 'system-dark-theme' : 'system-light-theme');
+					}
+				}
+				
+				function applyStoredTheme(theme) {
+					document.documentElement.classList.remove(
+						'highlightit-theme-light',
+						'highlightit-theme-dark',
+						'highlightit-theme-auto'
+					);
+					
+					document.documentElement.classList.add(`highlightit-theme-${theme}`);
+					
+					const themeButtons = document.querySelectorAll('.theme-selector button');
+					themeButtons.forEach(btn => {
+						btn.classList.remove('active');
+						if (btn.getAttribute('data-theme') === theme) {
+							btn.classList.add('active');
+						}
+					});
+					
+					if (theme === 'auto') {
+						applySystemTheme();
+					}
+				}
+				
+				function applyStoredStyle(style) {
+					styleSelector.value = style;
+					
+					loadHighlightStyle(style);
+				}
+				
+				applyStoredTheme(storedTheme);
+				
+				if (document.documentElement.classList.contains('highlightit-theme-auto')) {
+					console.log('Auto theme detected, using system preference');
+					applySystemTheme();
+
+					document.documentElement.classList.add('theme-updating');
+					setTimeout(() => {
+						document.documentElement.classList.remove('theme-updating');
+					}, 10);
+				}
+				
+				if (window.matchMedia) {
+					const colorSchemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+					
+					if (colorSchemeQuery.addEventListener) {
+						colorSchemeQuery.addEventListener('change', function(e) {
+							handleThemeChange();
+						});
+					} 
+					else if (colorSchemeQuery.addListener) {
+						colorSchemeQuery.addListener(function(e) {
+							handleThemeChange();
+						});
+					}
+				}
+				
+				function handleThemeChange() {
+					if (document.documentElement.classList.contains('highlightit-theme-auto')) {
+						console.log('System preference changed, updating auto theme');
+						applySystemTheme();
+						document.documentElement.classList.add('theme-updating');
+						setTimeout(() => {
+							document.documentElement.classList.remove('theme-updating');
+						}, 10);
+						
+						updateImportCode(styleSelector.value);
+					}
+				}
+				
+				window.addEventListener('load', function() {
+					if (document.documentElement.classList.contains('highlightit-theme-auto')) {
+						applySystemTheme();
+					}
+				});
 				
 				function loadHighlightStyle(styleName) {
 					if (currentStyleLink) {
@@ -899,6 +1099,8 @@ function overrideSettings() {
 						currentStyleInfo.textContent = `Currently using: ${styleName} style`;
 					}
 					
+					localStorage.setItem(STYLE_STORAGE_KEY, styleName);
+					
 					updateImportCode(styleName);
 				}
 				
@@ -906,8 +1108,14 @@ function overrideSettings() {
 					const importCodeDisplay = document.getElementById('import-code-display');
 					if (!importCodeDisplay) return;
 					
-					const currentTheme = document.documentElement.classList.contains('highlightit-theme-light') ? 'light' : 
-						document.documentElement.classList.contains('highlightit-theme-dark') ? 'dark' : 'auto';
+					let currentTheme;
+					if (document.documentElement.classList.contains('highlightit-theme-light')) {
+						currentTheme = 'light';
+					} else if (document.documentElement.classList.contains('highlightit-theme-dark')) {
+						currentTheme = 'dark';
+					} else {
+						currentTheme = 'auto';
+					}
 					
 					let htmlCode = '';
 					
@@ -943,7 +1151,7 @@ function overrideSettings() {
 					}
 				}
 				
-				loadHighlightStyle(styleSelector.value);
+				applyStoredStyle(storedStyle);
 				
 				const themeButtons = document.querySelectorAll('.theme-selector button')
 
@@ -962,6 +1170,16 @@ function overrideSettings() {
 						)
 
 						document.documentElement.classList.add(`highlightit-theme-${theme}`)
+						
+						localStorage.setItem(THEME_STORAGE_KEY, theme);
+						
+						if (theme === 'auto') {
+							applySystemTheme();
+							document.documentElement.classList.add('theme-updating');
+							setTimeout(() => {
+								document.documentElement.classList.remove('theme-updating');
+							}, 10);
+						}
 
 						updateImportCode(styleSelector.value);
 					})
