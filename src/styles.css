@@ -294,18 +294,38 @@
 	top: 8px;
 	right: 8px;
 	opacity: 0;
-	transition: opacity 0.2s ease;
+	transition:
+		opacity 0.2s ease,
+		background-color 0.2s ease,
+		transform 0.2s ease;
 	z-index: 10;
 	background-color: rgba(45, 45, 45, 0.8);
 }
 
 .highlightit-theme-light .highlightit-floating-copy,
-:root.highlightit-theme-auto.light-mode .highlightit-floating-copy {
+:root.highlightit-theme-auto.light-mode .highlightit-floating-copy,
+.highlightit-container[data-theme='light'] .highlightit-floating-copy {
 	background-color: rgba(200, 200, 200, 0.8);
 }
 
 .highlightit-no-header:hover .highlightit-floating-copy {
 	opacity: 1;
+}
+
+:root.highlightit-touch-device .highlightit-floating-copy {
+	opacity: 1;
+}
+
+.highlightit-floating-copy:hover {
+	background-color: rgba(65, 65, 65, 0.9);
+	transform: scale(1.05);
+}
+
+.highlightit-theme-light .highlightit-floating-copy:hover,
+:root.highlightit-theme-auto.light-mode .highlightit-floating-copy:hover,
+.highlightit-container[data-theme='light'] .highlightit-floating-copy:hover {
+	background-color: rgba(170, 170, 170, 0.9);
+	transform: scale(1.05);
 }
 
 .highlightit-container pre {

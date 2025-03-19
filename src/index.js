@@ -37,6 +37,15 @@ class HighlightIt {
 		this.debounceTime = debounceTime
 		this.applyGlobalTheme(theme)
 
+		this.isTouchDevice =
+			'ontouchstart' in window ||
+			navigator.maxTouchPoints > 0 ||
+			navigator.msMaxTouchPoints > 0
+
+		if (this.isTouchDevice) {
+			document.documentElement.classList.add('highlightit-touch-device')
+		}
+
 		const elements = document.querySelectorAll(selector + ':not(.highlightit-original)')
 
 		elements.forEach((element) => {
@@ -185,7 +194,7 @@ class HighlightIt {
 			container.classList.add('highlightit-with-lines')
 		}
 
-		this.highlightElement(element, autoDetect, addCopyButton, showLanguage, addHeader)
+		this.highlightElement(element, autoDetect, addCopyButton, showLanguage, addHeader, addLines)
 	}
 
 	/**
@@ -214,6 +223,7 @@ class HighlightIt {
 	 * @param {boolean} addCopyButton - Whether to add a copy button
 	 * @param {boolean} showLanguage - Whether to show the language label
 	 * @param {boolean} addHeader - Whether to add header section
+	 * @param {boolean} addLines - Whether to add line numbers
 	 * @private
 	 *
 	 * The element can have various data attributes:
@@ -225,7 +235,7 @@ class HighlightIt {
 	 * - data-no-copy: Hide the copy button
 	 * - data-with-reload: Enable live updates - code will be rehighlighted automatically when content changes
 	 */
-	static highlightElement(element, autoDetect, addCopyButton, showLanguage, addHeader) {
+	static highlightElement(element, autoDetect, addCopyButton, showLanguage, addHeader, addLines) {
 		const container = this.createCodeContainer(element)
 
 		const code = (element.textContent || '').trim()
@@ -242,7 +252,9 @@ class HighlightIt {
 			elementDataset.noHeader !== undefined ||
 			containerDataset.noHeader !== undefined
 		const withLines =
-			elementDataset.withLines !== undefined || containerDataset.withLines !== undefined
+			addLines ||
+			elementDataset.withLines !== undefined ||
+			containerDataset.withLines !== undefined
 		const withLiveUpdates =
 			elementDataset.withReload !== undefined || containerDataset.withReload !== undefined
 		const noCopy = elementDataset.noCopy !== undefined || containerDataset.noCopy !== undefined
@@ -394,6 +406,8 @@ class HighlightIt {
 		let originalElement = null
 		let linkId = null
 
+		const withLines = container.classList.contains('highlightit-with-lines')
+
 		if (element.parentElement && element.parentElement.dataset.linkedOriginal) {
 			linkId = element.parentElement.dataset.linkedOriginal
 		} else if (container && container.dataset.linkedOriginal) {
@@ -470,6 +484,10 @@ class HighlightIt {
 			} else {
 				this.rehighlightElement(targetElement, container, language, code, showLanguage)
 				targetElement.classList.add(`language-${language || 'unknown'}`)
+			}
+
+			if (withLines) {
+				this.addLineNumbers(targetElement, code)
 			}
 		}
 
@@ -605,6 +623,11 @@ class HighlightIt {
 	static createFloatingCopyButton(code) {
 		const copyButton = this.createCopyButton(code)
 		copyButton.className += ' highlightit-floating-copy'
+
+		if (this.isTouchDevice) {
+			copyButton.style.opacity = '1'
+		}
+
 		return copyButton
 	}
 
@@ -717,6 +740,12 @@ class HighlightIt {
 	 * @private
 	 */
 	static addLineNumbers(element, code) {
+		const preElement = element.parentElement
+
+		if (preElement.querySelector('.highlightit-line-numbers')) {
+			return
+		}
+
 		const trimmedCode = code.trim()
 		const lines = trimmedCode.split('\n')
 		const lineCount = lines.length
@@ -731,7 +760,6 @@ class HighlightIt {
 
 		lineNumbersWrapper.innerHTML = lineNumbersHtml
 
-		const preElement = element.parentElement
 		preElement.classList.add('highlightit-has-line-numbers')
 		preElement.prepend(lineNumbersWrapper)
 
@@ -752,6 +780,7 @@ class HighlightIt {
 
 		let language = null
 		let displayLabel = null
+		const withLines = container.classList.contains('highlightit-with-lines')
 
 		if (languageOrFilename) {
 			language = this.getLanguageFromFilename(languageOrFilename) || languageOrFilename
@@ -772,7 +801,7 @@ class HighlightIt {
 
 		element.innerHTML = result.value
 
-		if (container.classList.contains('highlightit-with-lines')) {
+		if (withLines) {
 			const oldLineNumbers = container.querySelector('.highlightit-line-numbers')
 			if (oldLineNumbers) {
 				oldLineNumbers.remove()

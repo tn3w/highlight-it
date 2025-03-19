@@ -65,272 +65,445 @@ function extractCssImports(filePath, visitedFiles = new Set()) {
 	return directCssImports
 }
 
-async function processCssThemes(stylesDir) {
-	const files = fs.readdirSync(stylesDir)
-	const cssFiles = files.filter((file) => file.endsWith('.css') && !file.endsWith('.min.css'))
-	const themeGroups = new Map()
+function extractCssRules(cssContent) {
+	const cleanCss = cssContent.replace(/\/\*![\s\S]*?\*\//g, '').trim()
 
-	cssFiles.forEach((file) => {
+	const baseStyleRegex = /(?:pre\s+code\.hljs|code\.hljs)[\s\S]*?}/g
+	const baseStyles = []
+	let baseMatch
+	while ((baseMatch = baseStyleRegex.exec(cleanCss)) !== null) {
+		baseStyles.push(baseMatch[0])
+	}
+
+	const ruleProperties = {}
+
+	const hljsRegex = /\.hljs\s*{([^{}]*)}/g
+	let match
+	while ((match = hljsRegex.exec(cleanCss)) !== null) {
+		const props = match[1].trim()
+		if (props) {
+			ruleProperties['hljs'] = props
+		}
+	}
+
+	const otherRuleRegex =
+		/\.hljs-([a-zA-Z0-9_-]+)(?:\s+[a-zA-Z0-9_.*>+[\]=~^$:,"\]]+)*\s*{([^{}]*)}/g
+	while ((match = otherRuleRegex.exec(cleanCss)) !== null) {
+		const className = match[0].substring(0, match[0].indexOf('{')).trim()
+		const props = match[1] ? match[1].trim() : ''
+		if (props) {
+			ruleProperties[className] = props
+		}
+	}
+
+	return { baseStyles, ruleProperties }
+}
+
+function extractPropertiesFromCSS(css, propertiesObj) {
+	const cleanCSS = css
+		.replace(/\/\*[\s\S]*?\*\//g, '')
+		.replace(/\s+/g, ' ')
+		.trim()
+
+	const ruleRegex = /\.hljs(?:-[a-zA-Z0-9_-]+)?(?:\s+[^{]*)?{([^}]*)}/g
+	let match
+
+	while ((match = ruleRegex.exec(cleanCSS)) !== null) {
+		const selector = match[0].substring(0, match[0].indexOf('{')).trim()
+		const properties = match[1].trim()
+
+		if (properties) {
+			propertiesObj[selector] = properties
+		}
+	}
+
+	return propertiesObj
+}
+
+function buildContainerCSS(containerSelector, properties) {
+	let containerProps = ''
+	if (properties['.hljs']) {
+		containerProps = properties['.hljs']
+			.split(';')
+			.filter((prop) => prop.trim())
+			.map((prop) => `  ${prop.trim()};`)
+			.join('\n')
+	}
+
+	if (containerSelector === ':root') {
+		let css = ''
+
+		if (containerProps) {
+			css += `${containerSelector} {\n${containerProps}\n}\n\n`
+		}
+
+		for (const selector in properties) {
+			if (selector !== '.hljs' && properties[selector]) {
+				const propLines = properties[selector]
+					.split(';')
+					.filter((prop) => prop.trim())
+					.map((prop) => `  ${prop.trim()};`)
+					.join('\n')
+
+				if (propLines) {
+					css += `${selector} {\n${propLines}\n}\n\n`
+				}
+			}
+		}
+
+		return css
+	} else {
+		let css = `${containerSelector} {\n`
+
+		if (containerProps) {
+			css += `${containerProps}\n`
+		}
+
+		for (const selector in properties) {
+			if (selector !== '.hljs' && properties[selector]) {
+				const className = selector.replace(/^\./, '')
+
+				const propLines = properties[selector]
+					.split(';')
+					.filter((prop) => prop.trim())
+					.map((prop) => `    ${prop.trim()};`)
+					.join('\n')
+
+				if (propLines) {
+					css += `  .${className} {\n${propLines}\n  }\n\n`
+				}
+			}
+		}
+
+		css += '}\n'
+		return css
+	}
+}
+
+async function processCssThemes(stylesDir) {
+	const cssFiles = fs.readdirSync(stylesDir)
+		.filter(file => file.endsWith('.css') && !file.endsWith('.min.css'));
+	
+	const themeGroups = new Map();
+	const standaloneFiles = new Set();
+
+	cssFiles.forEach(file => {
 		const baseName = file
 			.replace(/-light(-[^.]+)?\.css$/, '')
 			.replace(/-dark(-[^.]+)?\.css$/, '')
-			.replace(/\.css$/, '')
+			.replace(/\.css$/, '');
+		
+		if (!themeGroups.has(baseName)) themeGroups.set(baseName, []);
+		themeGroups.get(baseName).push(file);
+	});
 
-		if (!themeGroups.has(baseName)) {
-			themeGroups.set(baseName, [])
+	for (const [, files] of themeGroups) {
+		if (files.length === 1 && (files[0].includes('-light') || files[0].includes('-dark'))) {
+			standaloneFiles.add(files[0]);
 		}
-		themeGroups.get(baseName).push(file)
-	})
+	}
 
 	for (const [baseName, relatedFiles] of themeGroups) {
-		const hasLight = relatedFiles.some((f) => f.includes('-light'))
-		const hasDark = relatedFiles.some((f) => f.includes('-dark'))
+		const hasVariants = relatedFiles.some(f => f.includes('-light-') || f.includes('-dark-'));
 
-		if (relatedFiles.length === 1 && !hasLight && !hasDark) {
-			continue
+		if (relatedFiles.length === 1 && (
+			standaloneFiles.has(relatedFiles[0]) || 
+			(!hasVariants && !relatedFiles[0].includes('-light') && !relatedFiles[0].includes('-dark'))
+		)) {
+			continue;
 		}
 
-		let lightContent = ''
-		let darkContent = ''
-		let darkVariants = new Map()
-
-		for (const file of relatedFiles) {
-			const content = fs.readFileSync(path.join(stylesDir, file), 'utf8')
-
-			if (file.includes('-light')) {
-				lightContent = content
-			} else if (file.includes('-dark')) {
-				const match = file.match(/-dark(-[^.]+)?\.css$/)
-				if (match && match[1]) {
-					darkVariants.set(match[1], content)
-				} else {
-					darkContent = content
-				}
-			} else if (!hasLight && !file.includes('-dark')) {
-				lightContent = content
-			} else if (!hasDark && !file.includes('-light')) {
-				darkContent = content
-			}
-		}
-
-		if (!lightContent && !darkContent) {
-			const baseContent = fs.readFileSync(path.join(stylesDir, relatedFiles[0]), 'utf8')
-			darkContent = baseContent
-		} else if (!lightContent) {
-			const baseFile = relatedFiles.find((f) => !f.includes('-dark'))
-			if (baseFile) {
-				lightContent = fs.readFileSync(path.join(stylesDir, baseFile), 'utf8')
-			}
-		} else if (!darkContent) {
-			const baseFile = relatedFiles.find((f) => !f.includes('-light'))
-			if (baseFile) {
-				darkContent = fs.readFileSync(path.join(stylesDir, baseFile), 'utf8')
-			}
-		}
-
-		let combinedContent = ''
-
-		const licenseHeaders = new Set()
-		const extractLicense = (content) => {
-			const match = content.match(/\/\*![\s\S]*?\*\//g)
-			if (match && match[0]) {
-				const header = match[0]
-				if (!Array.from(licenseHeaders).some((h) => h.includes(header.split('\n')[1]))) {
-					licenseHeaders.add(header)
-				}
-			}
-		}
-
-		if (lightContent) extractLicense(lightContent)
-		if (darkContent) extractLicense(darkContent)
-
-		combinedContent = Array.from(licenseHeaders).join('\n') + '\n\n'
-
-		const removeLicenseHeaders = (content) => {
-			return content.replace(/\/\*![\s\S]*?\*\//g, '').trim()
-		}
-
-		const baseStyles =
-			removeLicenseHeaders(lightContent).match(
-				/pre code\.hljs[\s\S]*?}|code\.hljs[\s\S]*?}/g
-			) || []
-		combinedContent += baseStyles.join('\n\n') + '\n\n'
-
-		if (darkContent) {
-			const darkTheme = removeLicenseHeaders(darkContent).replace(
-				/pre code\.hljs[\s\S]*?}|code\.hljs[\s\S]*?}/g,
-				''
-			)
-			combinedContent += ':root {\n'
-			combinedContent += darkTheme.replace(/\.hljs/g, '.hljs').trim()
-			combinedContent += '\n}\n\n'
-		}
-
-		if (lightContent) {
-			const lightTheme = removeLicenseHeaders(lightContent).replace(
-				/pre code\.hljs[\s\S]*?}|code\.hljs[\s\S]*?}/g,
-				''
-			)
-			combinedContent += '.highlightit-theme-light {\n'
-			combinedContent += lightTheme.replace(/\.hljs/g, '.hljs').trim()
-			combinedContent += '\n}\n\n'
-
-			combinedContent += '@media (prefers-color-scheme: light) {\n'
-			combinedContent += '  :root.highlightit-theme-auto {\n'
-			combinedContent += lightTheme
-				.replace(/\.hljs/g, '.hljs')
-				.trim()
-				.split('\n')
-				.map((line) => '    ' + line)
-				.join('\n')
-			combinedContent += '\n  }\n}\n\n'
-
-			combinedContent += '.highlightit-container[data-theme="light"],\n'
-			combinedContent += '.highlightit-container pre[data-theme="light"],\n'
-			combinedContent += '.highlightit-container code[data-theme="light"] {\n'
-			combinedContent += lightTheme
-				.replace(/\.hljs/g, '.hljs')
-				.trim()
-				.split('\n')
-				.map((line) => '  ' + line)
-				.join('\n')
-			combinedContent += '\n}\n\n'
-		}
-
-		if (darkContent) {
-			combinedContent += '.highlightit-container[data-theme="dark"],\n'
-			combinedContent += '.highlightit-container pre[data-theme="dark"],\n'
-			combinedContent += '.highlightit-container code[data-theme="dark"] {\n'
-			combinedContent += removeLicenseHeaders(darkContent)
-				.replace(/\.hljs/g, '.hljs')
-				.replace(/pre code\.hljs[\s\S]*?}|code\.hljs[\s\S]*?}/g, '')
-				.trim()
-				.split('\n')
-				.map((line) => '  ' + line)
-				.join('\n')
-			combinedContent += '\n}\n'
-		}
-
-		for (const [variant, variantContent] of darkVariants) {
-			if (lightContent) {
-				const variantFilename = `${baseName}${variant}.css`
-				const variantCombined =
-					Array.from(licenseHeaders).join('\n') +
-					'\n\n' +
-					baseStyles.join('\n\n') +
-					'\n\n' +
-					':root {\n' +
-					removeLicenseHeaders(variantContent)
-						.replace(/pre code\.hljs[\s\S]*?}|code\.hljs[\s\S]*?}/g, '')
-						.replace(/\.hljs/g, '.hljs')
-						.trim() +
-					'\n}\n\n' +
-					'.highlightit-theme-light {\n' +
-					removeLicenseHeaders(lightContent)
-						.replace(/pre code\.hljs[\s\S]*?}|code\.hljs[\s\S]*?}/g, '')
-						.replace(/\.hljs/g, '.hljs')
-						.trim() +
-					'\n}\n\n' +
-					'@media (prefers-color-scheme: light) {\n' +
-					'  :root.highlightit-theme-auto {\n' +
-					removeLicenseHeaders(lightContent)
-						.replace(/pre code\.hljs[\s\S]*?}|code\.hljs[\s\S]*?}/g, '')
-						.replace(/\.hljs/g, '.hljs')
-						.trim()
-						.split('\n')
-						.map((line) => '    ' + line)
-						.join('\n') +
-					'\n  }\n}\n\n' +
-					'.highlightit-container[data-theme="light"],\n' +
-					'.highlightit-container pre[data-theme="light"],\n' +
-					'.highlightit-container code[data-theme="light"] {\n' +
-					removeLicenseHeaders(lightContent)
-						.replace(/pre code\.hljs[\s\S]*?}|code\.hljs[\s\S]*?}/g, '')
-						.replace(/\.hljs/g, '.hljs')
-						.trim()
-						.split('\n')
-						.map((line) => '  ' + line)
-						.join('\n') +
-					'\n}\n\n' +
-					'.highlightit-container[data-theme="dark"],\n' +
-					'.highlightit-container pre[data-theme="dark"],\n' +
-					'.highlightit-container code[data-theme="dark"] {\n' +
-					removeLicenseHeaders(variantContent)
-						.replace(/\.hljs/g, '.hljs')
-						.replace(/pre code\.hljs[\s\S]*?}|code\.hljs[\s\S]*?}/g, '')
-						.trim()
-						.split('\n')
-						.map((line) => '  ' + line)
-						.join('\n') +
-					'\n}\n'
-
+		const readFile = (file) => fs.readFileSync(path.join(stylesDir, file), 'utf8');
+		const extractLicense = (content) => content.match(/\/\*![\s\S]*?\*\//g) || [];
+		const writeThemeFile = async (filename, content, licenseHeaders) => {
+			try {
 				try {
-					const prettierConfig = await prettier.resolveConfig(process.cwd())
-					const formattedVariant = await prettier.format(variantCombined, {
-						...prettierConfig,
-						parser: 'css',
-						printWidth: 100,
-						tabWidth: 2,
-						semi: true,
-						singleQuote: true
-					})
-					fs.writeFileSync(path.join(stylesDir, variantFilename), formattedVariant)
+					const prettierConfig = await prettier.resolveConfig(process.cwd());
+					const formatted = await prettier.format(content, {
+						...prettierConfig, parser: 'css', printWidth: 100, tabWidth: 2, 
+						semi: true, singleQuote: true
+					});
+					fs.writeFileSync(path.join(stylesDir, filename), formatted);
 				} catch (error) {
-					console.warn(
-						`Warning: Could not format variant CSS with prettier:`,
-						error.message
-					)
-					fs.writeFileSync(path.join(stylesDir, variantFilename), variantCombined)
+					console.warn(`Warning: Error formatting CSS ${filename}:`, error.message);
+					fs.writeFileSync(path.join(stylesDir, filename), content);
+				}
+				
+				try {
+					const minified = await postcss([cssnano()]).process(
+						content.replace(/\/\*![\s\S]*?\*\//g, ''),
+						{ from: path.join(stylesDir, filename) }
+					);
+					fs.writeFileSync(
+						path.join(stylesDir, filename.replace('.css', '.min.css')),
+						licenseHeaders + minified.css
+					);
+				} catch (minifyErr) {
+					console.warn(`Warning: Error minifying CSS ${filename}:`, minifyErr.message);
+				}
+			} catch (error) {
+				console.warn(`Warning: Error processing CSS ${filename}:`, error.message);
+			}
+		};
+
+		const licenseHeaders = new Set();
+		let lightFile = null;
+		let darkFile = null;
+		
+		const explicitLightFile = relatedFiles.find(f => f.includes('-light') && !f.includes('-light-'));
+		const explicitDarkFile = relatedFiles.find(f => f.includes('-dark') && !f.includes('-dark-'));
+		const baseFile = relatedFiles.find(f => f === `${baseName}.css`);
+		
+		const variantFiles = relatedFiles.filter(f => 
+			f.match(new RegExp(`^${baseName}-[^.]+\\.css$`)) &&
+			!f.includes('-light-') && !f.includes('-dark-') &&
+			!f.includes('-light') && !f.includes('-dark')
+		);
+
+		if (explicitLightFile && explicitDarkFile) {
+			lightFile = explicitLightFile;
+			darkFile = explicitDarkFile;
+		} else if (explicitDarkFile && baseFile) {
+			lightFile = baseFile;
+			darkFile = explicitDarkFile;
+		} else if (explicitLightFile && baseFile) {
+			lightFile = explicitLightFile;
+			darkFile = baseFile;
+		} else if (explicitLightFile) {
+			lightFile = darkFile = explicitLightFile;
+		} else if (explicitDarkFile) {
+			lightFile = darkFile = explicitDarkFile;
+		} else if (baseFile && !variantFiles.length) {
+			lightFile = darkFile = baseFile;
+		} else if (baseFile && variantFiles.length) {
+			lightFile = darkFile = baseFile;
+		}
+
+		if (lightFile && darkFile) {
+			const lightContent = readFile(lightFile);
+			const darkContent = readFile(darkFile);
+			
+			const allLicenseHeaders = new Set();
+			
+			extractLicense(lightContent).forEach(match => {
+				allLicenseHeaders.add(match);
+				licenseHeaders.add(match);
+			});
+			
+			extractLicense(darkContent).forEach(match => {
+				allLicenseHeaders.add(match);
+				licenseHeaders.add(match);
+			});
+
+			const { baseStyles: lightBaseStyles } = extractCssRules(lightContent);
+			const { baseStyles: darkBaseStyles } = extractCssRules(darkContent);
+			
+			const lightProps = {};
+			const darkProps = {};
+			
+			extractPropertiesFromCSS(lightContent, lightProps);
+			extractPropertiesFromCSS(darkContent, darkProps);
+			
+			const combinedBaseStyles = [...new Set([...lightBaseStyles, ...darkBaseStyles])];
+			const combinedLicenseHeaders = Array.from(allLicenseHeaders).join('\n\n') + (allLicenseHeaders.size ? '\n\n' : '');
+			
+			let combinedContent = combinedLicenseHeaders + combinedBaseStyles.join('\n\n') + '\n\n';
+			combinedContent += buildContainerCSS(':root', darkProps) + '\n';
+			combinedContent += buildContainerCSS('.highlightit-theme-light', lightProps) + '\n';
+			combinedContent += '@media (prefers-color-scheme: light) {\n' +
+				buildContainerCSS('  :root.highlightit-theme-auto', lightProps)
+					.split('\n')
+					.map(line => '  ' + line)
+					.join('\n') +
+				'}\n\n';
+			
+			const containerSelectors = {
+				light: '.highlightit-container[data-theme="light"],\n' +
+					   '.highlightit-container pre[data-theme="light"],\n' +
+					   '.highlightit-container code[data-theme="light"]',
+				dark: '.highlightit-container[data-theme="dark"],\n' +
+					  '.highlightit-container pre[data-theme="dark"],\n' +
+					  '.highlightit-container code[data-theme="dark"]'
+			};
+			
+			combinedContent += buildContainerCSS(containerSelectors.light, lightProps) + '\n';
+			combinedContent += buildContainerCSS(containerSelectors.dark, darkProps);
+			
+			const outputFilename = `${baseName}.css`;
+			await writeThemeFile(outputFilename, combinedContent, combinedLicenseHeaders);
+		}
+
+		if (hasVariants) {
+			const variants = new Map();
+			const processedFiles = new Set();
+
+			relatedFiles.forEach(file => {
+				let variant = null, isLight = false, isDark = false;
+				
+				if (file.match(/-light-([^.]+)\.css$/)) {
+					variant = file.match(/-light-([^.]+)\.css$/)[1];
+					isLight = true;
+				} else if (file.match(/-dark-([^.]+)\.css$/)) {
+					variant = file.match(/-dark-([^.]+)\.css$/)[1];
+					isDark = true;
+				} else if (file.match(new RegExp(`^${baseName}-([^.]+)\\.css$`)) && 
+						  !file.includes('-light') && !file.includes('-dark')) {
+					variant = file.match(new RegExp(`^${baseName}-([^.]+)\\.css$`))[1];
+					if (variant === 'dimmed') isDark = true;
 				}
 
-				const minified = await postcss([cssnano()]).process(
-					removeLicenseHeaders(variantCombined),
-					{
-						from: path.join(stylesDir, variantFilename)
+				if (variant) {
+					if (!variants.has(variant)) {
+						variants.set(variant, { light: null, dark: null, base: null });
 					}
-				)
-				fs.writeFileSync(
-					path.join(stylesDir, variantFilename.replace('.css', '.min.css')),
-					Array.from(licenseHeaders).join('\n') + '\n' + minified.css
-				)
+					
+					if (isLight) variants.get(variant).light = file;
+					else if (isDark) variants.get(variant).dark = file;
+					else variants.get(variant).base = file;
+					
+					if (file.includes('-light-') || file.includes('-dark-') ||
+					   (file.match(new RegExp(`^${baseName}-[^.]+\\.css$`)) && !file.match(new RegExp(`^${baseName}\\.css$`)))) {
+						processedFiles.add(file);
+					}
+				}
+			});
+
+			for (const [variant, files] of variants.entries()) {
+				let variantLightFile = files.light || lightFile;
+				let variantDarkFile = files.dark || darkFile;
+				
+				if (files.base) {
+					if (variant === 'dimmed') {
+						variantDarkFile = files.base;
+						if (!variantLightFile && lightFile) variantLightFile = lightFile;
+					} else {
+						if (!variantLightFile) variantLightFile = files.base;
+						if (!variantDarkFile) variantDarkFile = files.base;
+					}
+				}
+				
+				if (!variantLightFile && variantDarkFile) variantLightFile = variantDarkFile;
+				else if (!variantDarkFile && variantLightFile) variantDarkFile = variantLightFile;
+				
+				if (!variantLightFile || !variantDarkFile) {
+					console.warn(`Could not find required files for variant: ${variant}, skipping`);
+					continue;
+				}
+				
+				const variantLicenseHeaders = new Set();
+				const variantLightContent = readFile(variantLightFile);
+				const variantDarkContent = readFile(variantDarkFile);
+				
+				extractLicense(variantLightContent).forEach(match => {
+					variantLicenseHeaders.add(match);
+				});
+				
+				extractLicense(variantDarkContent).forEach(match => {
+					variantLicenseHeaders.add(match);
+				});
+				
+				if (files.base) {
+					extractLicense(readFile(files.base)).forEach(match => {
+						variantLicenseHeaders.add(match);
+					});
+				}
+				
+				const { baseStyles: variantLightBaseStyles } = extractCssRules(variantLightContent);
+				const { baseStyles: variantDarkBaseStyles } = extractCssRules(variantDarkContent);
+				
+				const variantLightProps = {};
+				const variantDarkProps = {};
+				
+				extractPropertiesFromCSS(variantLightContent, variantLightProps);
+				extractPropertiesFromCSS(variantDarkContent, variantDarkProps);
+				
+				const combinedBaseStyles = [...new Set([...variantLightBaseStyles, ...variantDarkBaseStyles])];
+				const variantCombinedLicenseHeaders = Array.from(variantLicenseHeaders).join('\n\n') + 
+														(variantLicenseHeaders.size ? '\n\n' : '');
+				
+				let variantCombined = variantCombinedLicenseHeaders + combinedBaseStyles.join('\n\n') + '\n\n';
+				variantCombined += buildContainerCSS(':root', variantDarkProps) + '\n';
+				variantCombined += buildContainerCSS('.highlightit-theme-light', variantLightProps) + '\n';
+				variantCombined += '@media (prefers-color-scheme: light) {\n' +
+					buildContainerCSS('  :root.highlightit-theme-auto', variantLightProps)
+						.split('\n')
+						.map(line => '  ' + line)
+						.join('\n') +
+					'}\n\n';
+				
+				const containerSelectors = {
+					light: '.highlightit-container[data-theme="light"],\n' +
+						   '.highlightit-container pre[data-theme="light"],\n' +
+						   '.highlightit-container code[data-theme="light"]',
+					dark: '.highlightit-container[data-theme="dark"],\n' +
+						  '.highlightit-container pre[data-theme="dark"],\n' +
+						  '.highlightit-container code[data-theme="dark"]'
+				};
+				
+				variantCombined += buildContainerCSS(containerSelectors.light, variantLightProps) + '\n';
+				variantCombined += buildContainerCSS(containerSelectors.dark, variantDarkProps);
+				
+				const variantFilename = `${baseName}-${variant}.css`;
+				await writeThemeFile(variantFilename, variantCombined, variantCombinedLicenseHeaders);
 			}
+
+			if (lightFile && lightFile !== `${baseName}.css`) processedFiles.add(lightFile);
+			if (darkFile && darkFile !== `${baseName}.css`) processedFiles.add(darkFile);
+			
+			processedFiles.forEach(file => {
+				if (file === `${baseName}.css`) {
+					return;
+				}
+				
+				const filePath = path.join(stylesDir, file);
+				const minFilePath = filePath.replace('.css', '.min.css');
+				
+				if (fs.existsSync(filePath)) {
+					fs.unlinkSync(filePath);
+				}
+				
+				if (fs.existsSync(minFilePath)) {
+					fs.unlinkSync(minFilePath);
+				}
+			});
 		}
 
-		const outputFilename = `${baseName}.css`
-
-		try {
-			const prettierConfig = await prettier.resolveConfig(process.cwd())
-			const formatted = await prettier.format(combinedContent, {
-				...prettierConfig,
-				parser: 'css',
-				printWidth: 100,
-				tabWidth: 2,
-				semi: true,
-				singleQuote: true
-			})
-			fs.writeFileSync(path.join(stylesDir, outputFilename), formatted)
-		} catch (error) {
-			console.warn('Warning: Could not format CSS with prettier:', error.message)
-			fs.writeFileSync(path.join(stylesDir, outputFilename), combinedContent)
-		}
-
-		const minified = await postcss([cssnano()]).process(removeLicenseHeaders(combinedContent), {
-			from: path.join(stylesDir, outputFilename)
-		})
-		fs.writeFileSync(
-			path.join(stylesDir, outputFilename.replace('.css', '.min.css')),
-			Array.from(licenseHeaders).join('\n') + '\n' + minified.css
-		)
-
-		relatedFiles.forEach((file) => {
-			if (file !== outputFilename && file !== outputFilename.replace('.css', '.min.css')) {
-				const filePath = path.join(stylesDir, file)
-				const minFilePath = filePath.replace('.css', '.min.css')
-				if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
-				if (fs.existsSync(minFilePath)) fs.unlinkSync(minFilePath)
+		relatedFiles.forEach(file => {
+			if (standaloneFiles.has(file)) {
+				return;
 			}
-		})
+			
+			const isLightOrDarkFile = file.includes('-light') || file.includes('-dark');
+			const isBaseFile = file === `${baseName}.css`;
+			const isVariantFile = file.match(new RegExp(`^${baseName}-[^.]+\\.css$`)) && !isLightOrDarkFile;
+			
+			if (isLightOrDarkFile || (!isBaseFile && !isVariantFile)) {
+				const filePath = path.join(stylesDir, file);
+				const minFilePath = filePath.replace('.css', '.min.css');
+				
+				if (fs.existsSync(filePath)) {
+					fs.unlinkSync(filePath);
+				}
+				
+				if (fs.existsSync(minFilePath)) {
+					fs.unlinkSync(minFilePath);
+				}
+			}
+		});
 	}
+
+	fs.readdirSync(stylesDir)
+		.filter(file => 
+			!standaloneFiles.has(file) && 
+			(file.includes('-light') || file.includes('-dark')) && 
+			file.endsWith('.css')
+		)
+		.forEach(file => {
+			const filePath = path.join(stylesDir, file);
+			const minFilePath = filePath.replace('.css', '.min.css');
+			if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+			if (fs.existsSync(minFilePath)) fs.unlinkSync(minFilePath);
+		});
 }
 
 async function build() {
