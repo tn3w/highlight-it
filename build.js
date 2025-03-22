@@ -16,7 +16,7 @@ const version = packageJson.version
 const currentYear = new Date().getFullYear()
 const licenseHeader = `/*!
  * HighlightIt v${version}
- * https:
+ * https://github.com/TN3W/highlight-it
  * (c) ${currentYear} TN3W
  * Released under the Apache 2.0 License
  */\n`
@@ -120,10 +120,30 @@ function extractPropertiesFromCSS(css, propertiesObj) {
 	return propertiesObj
 }
 
+function removeBackgroundAndColorProps(cssString) {
+	if (!cssString) return ''
+
+	return cssString
+		.split(';')
+		.filter((prop) => {
+			const propLower = prop.toLowerCase().trim()
+			return !/^background(?!-image)(?!-position)(?!-repeat)(?!-size)(?!-attachment)(?!-origin)(?!-clip).*?\s*:/i.test(
+				propLower
+			)
+		})
+		.join(';')
+}
+
 function buildContainerCSS(containerSelector, properties) {
 	let containerProps = ''
 	if (properties['.hljs']) {
 		containerProps = properties['.hljs']
+			.split(';')
+			.filter((prop) => prop.trim())
+			.map((prop) => `  ${prop.trim()};`)
+			.join('\n')
+
+		containerProps = removeBackgroundAndColorProps(containerProps)
 			.split(';')
 			.filter((prop) => prop.trim())
 			.map((prop) => `  ${prop.trim()};`)
@@ -139,7 +159,9 @@ function buildContainerCSS(containerSelector, properties) {
 
 		for (const selector in properties) {
 			if (selector !== '.hljs' && properties[selector]) {
-				const propLines = properties[selector]
+				const filteredProps = removeBackgroundAndColorProps(properties[selector])
+
+				const propLines = filteredProps
 					.split(';')
 					.filter((prop) => prop.trim())
 					.map((prop) => `  ${prop.trim()};`)
@@ -181,329 +203,369 @@ function buildContainerCSS(containerSelector, properties) {
 }
 
 async function processCssThemes(stylesDir) {
-	const cssFiles = fs.readdirSync(stylesDir)
-		.filter(file => file.endsWith('.css') && !file.endsWith('.min.css'));
-	
-	const themeGroups = new Map();
-	const standaloneFiles = new Set();
+	const cssFiles = fs
+		.readdirSync(stylesDir)
+		.filter((file) => file.endsWith('.css') && !file.endsWith('.min.css'))
 
-	cssFiles.forEach(file => {
+	const themeGroups = new Map()
+	const standaloneFiles = new Set()
+
+	cssFiles.forEach((file) => {
 		const baseName = file
 			.replace(/-light(-[^.]+)?\.css$/, '')
 			.replace(/-dark(-[^.]+)?\.css$/, '')
-			.replace(/\.css$/, '');
-		
-		if (!themeGroups.has(baseName)) themeGroups.set(baseName, []);
-		themeGroups.get(baseName).push(file);
-	});
+			.replace(/\.css$/, '')
+
+		if (!themeGroups.has(baseName)) themeGroups.set(baseName, [])
+		themeGroups.get(baseName).push(file)
+	})
 
 	for (const [, files] of themeGroups) {
 		if (files.length === 1 && (files[0].includes('-light') || files[0].includes('-dark'))) {
-			standaloneFiles.add(files[0]);
+			standaloneFiles.add(files[0])
 		}
 	}
 
 	for (const [baseName, relatedFiles] of themeGroups) {
-		const hasVariants = relatedFiles.some(f => f.includes('-light-') || f.includes('-dark-'));
+		const hasVariants = relatedFiles.some((f) => f.includes('-light-') || f.includes('-dark-'))
 
-		if (relatedFiles.length === 1 && (
-			standaloneFiles.has(relatedFiles[0]) || 
-			(!hasVariants && !relatedFiles[0].includes('-light') && !relatedFiles[0].includes('-dark'))
-		)) {
-			continue;
+		if (
+			relatedFiles.length === 1 &&
+			(standaloneFiles.has(relatedFiles[0]) ||
+				(!hasVariants &&
+					!relatedFiles[0].includes('-light') &&
+					!relatedFiles[0].includes('-dark')))
+		) {
+			continue
 		}
 
-		const readFile = (file) => fs.readFileSync(path.join(stylesDir, file), 'utf8');
-		const extractLicense = (content) => content.match(/\/\*![\s\S]*?\*\//g) || [];
+		const readFile = (file) => fs.readFileSync(path.join(stylesDir, file), 'utf8')
+		const extractLicense = (content) => content.match(/\/\*![\s\S]*?\*\//g) || []
 		const writeThemeFile = async (filename, content, licenseHeaders) => {
 			try {
 				try {
-					const prettierConfig = await prettier.resolveConfig(process.cwd());
+					const prettierConfig = await prettier.resolveConfig(process.cwd())
 					const formatted = await prettier.format(content, {
-						...prettierConfig, parser: 'css', printWidth: 100, tabWidth: 2, 
-						semi: true, singleQuote: true
-					});
-					fs.writeFileSync(path.join(stylesDir, filename), formatted);
+						...prettierConfig,
+						parser: 'css',
+						printWidth: 100,
+						tabWidth: 2,
+						semi: true,
+						singleQuote: true
+					})
+					fs.writeFileSync(path.join(stylesDir, filename), formatted)
 				} catch (error) {
-					console.warn(`Warning: Error formatting CSS ${filename}:`, error.message);
-					fs.writeFileSync(path.join(stylesDir, filename), content);
+					console.warn(`Warning: Error formatting CSS ${filename}:`, error.message)
+					fs.writeFileSync(path.join(stylesDir, filename), content)
 				}
-				
+
 				try {
 					const minified = await postcss([cssnano()]).process(
 						content.replace(/\/\*![\s\S]*?\*\//g, ''),
 						{ from: path.join(stylesDir, filename) }
-					);
+					)
 					fs.writeFileSync(
 						path.join(stylesDir, filename.replace('.css', '.min.css')),
 						licenseHeaders + minified.css
-					);
+					)
 				} catch (minifyErr) {
-					console.warn(`Warning: Error minifying CSS ${filename}:`, minifyErr.message);
+					console.warn(`Warning: Error minifying CSS ${filename}:`, minifyErr.message)
 				}
 			} catch (error) {
-				console.warn(`Warning: Error processing CSS ${filename}:`, error.message);
+				console.warn(`Warning: Error processing CSS ${filename}:`, error.message)
 			}
-		};
+		}
 
-		const licenseHeaders = new Set();
-		let lightFile = null;
-		let darkFile = null;
-		
-		const explicitLightFile = relatedFiles.find(f => f.includes('-light') && !f.includes('-light-'));
-		const explicitDarkFile = relatedFiles.find(f => f.includes('-dark') && !f.includes('-dark-'));
-		const baseFile = relatedFiles.find(f => f === `${baseName}.css`);
-		
-		const variantFiles = relatedFiles.filter(f => 
-			f.match(new RegExp(`^${baseName}-[^.]+\\.css$`)) &&
-			!f.includes('-light-') && !f.includes('-dark-') &&
-			!f.includes('-light') && !f.includes('-dark')
-		);
+		const licenseHeaders = new Set()
+		let lightFile = null
+		let darkFile = null
+
+		const explicitLightFile = relatedFiles.find(
+			(f) => f.includes('-light') && !f.includes('-light-')
+		)
+		const explicitDarkFile = relatedFiles.find(
+			(f) => f.includes('-dark') && !f.includes('-dark-')
+		)
+		const baseFile = relatedFiles.find((f) => f === `${baseName}.css`)
+
+		const variantFiles = relatedFiles.filter(
+			(f) =>
+				f.match(new RegExp(`^${baseName}-[^.]+\\.css$`)) &&
+				!f.includes('-light-') &&
+				!f.includes('-dark-') &&
+				!f.includes('-light') &&
+				!f.includes('-dark')
+		)
 
 		if (explicitLightFile && explicitDarkFile) {
-			lightFile = explicitLightFile;
-			darkFile = explicitDarkFile;
+			lightFile = explicitLightFile
+			darkFile = explicitDarkFile
 		} else if (explicitDarkFile && baseFile) {
-			lightFile = baseFile;
-			darkFile = explicitDarkFile;
+			lightFile = baseFile
+			darkFile = explicitDarkFile
 		} else if (explicitLightFile && baseFile) {
-			lightFile = explicitLightFile;
-			darkFile = baseFile;
+			lightFile = explicitLightFile
+			darkFile = baseFile
 		} else if (explicitLightFile) {
-			lightFile = darkFile = explicitLightFile;
+			lightFile = darkFile = explicitLightFile
 		} else if (explicitDarkFile) {
-			lightFile = darkFile = explicitDarkFile;
+			lightFile = darkFile = explicitDarkFile
 		} else if (baseFile && !variantFiles.length) {
-			lightFile = darkFile = baseFile;
+			lightFile = darkFile = baseFile
 		} else if (baseFile && variantFiles.length) {
-			lightFile = darkFile = baseFile;
+			lightFile = darkFile = baseFile
 		}
 
 		if (lightFile && darkFile) {
-			const lightContent = readFile(lightFile);
-			const darkContent = readFile(darkFile);
-			
-			const allLicenseHeaders = new Set();
-			
-			extractLicense(lightContent).forEach(match => {
-				allLicenseHeaders.add(match);
-				licenseHeaders.add(match);
-			});
-			
-			extractLicense(darkContent).forEach(match => {
-				allLicenseHeaders.add(match);
-				licenseHeaders.add(match);
-			});
+			const lightContent = readFile(lightFile)
+			const darkContent = readFile(darkFile)
 
-			const { baseStyles: lightBaseStyles } = extractCssRules(lightContent);
-			const { baseStyles: darkBaseStyles } = extractCssRules(darkContent);
-			
-			const lightProps = {};
-			const darkProps = {};
-			
-			extractPropertiesFromCSS(lightContent, lightProps);
-			extractPropertiesFromCSS(darkContent, darkProps);
-			
-			const combinedBaseStyles = [...new Set([...lightBaseStyles, ...darkBaseStyles])];
-			const combinedLicenseHeaders = Array.from(allLicenseHeaders).join('\n\n') + (allLicenseHeaders.size ? '\n\n' : '');
-			
-			let combinedContent = combinedLicenseHeaders + combinedBaseStyles.join('\n\n') + '\n\n';
-			combinedContent += buildContainerCSS(':root', darkProps) + '\n';
-			combinedContent += buildContainerCSS('.highlightit-theme-light', lightProps) + '\n';
-			combinedContent += '@media (prefers-color-scheme: light) {\n' +
+			const allLicenseHeaders = new Set()
+
+			extractLicense(lightContent).forEach((match) => {
+				allLicenseHeaders.add(match)
+				licenseHeaders.add(match)
+			})
+
+			extractLicense(darkContent).forEach((match) => {
+				allLicenseHeaders.add(match)
+				licenseHeaders.add(match)
+			})
+
+			const { baseStyles: lightBaseStyles } = extractCssRules(lightContent)
+			const { baseStyles: darkBaseStyles } = extractCssRules(darkContent)
+
+			const lightProps = {}
+			const darkProps = {}
+
+			extractPropertiesFromCSS(lightContent, lightProps)
+			extractPropertiesFromCSS(darkContent, darkProps)
+
+			const combinedBaseStyles = [...new Set([...lightBaseStyles, ...darkBaseStyles])]
+			const combinedLicenseHeaders =
+				Array.from(allLicenseHeaders).join('\n\n') + (allLicenseHeaders.size ? '\n\n' : '')
+
+			let combinedContent = combinedLicenseHeaders + combinedBaseStyles.join('\n\n') + '\n\n'
+			combinedContent += buildContainerCSS(':root', darkProps) + '\n'
+			combinedContent += buildContainerCSS('.highlightit-theme-light', lightProps) + '\n'
+			combinedContent +=
+				'@media (prefers-color-scheme: light) {\n' +
 				buildContainerCSS('  :root.highlightit-theme-auto', lightProps)
 					.split('\n')
-					.map(line => '  ' + line)
+					.map((line) => '  ' + line)
 					.join('\n') +
-				'}\n\n';
-			
+				'}\n\n'
+
 			const containerSelectors = {
-				light: '.highlightit-container[data-theme="light"],\n' +
-					   '.highlightit-container pre[data-theme="light"],\n' +
-					   '.highlightit-container code[data-theme="light"]',
-				dark: '.highlightit-container[data-theme="dark"],\n' +
-					  '.highlightit-container pre[data-theme="dark"],\n' +
-					  '.highlightit-container code[data-theme="dark"]'
-			};
-			
-			combinedContent += buildContainerCSS(containerSelectors.light, lightProps) + '\n';
-			combinedContent += buildContainerCSS(containerSelectors.dark, darkProps);
-			
-			const outputFilename = `${baseName}.css`;
-			await writeThemeFile(outputFilename, combinedContent, combinedLicenseHeaders);
+				light:
+					'.highlightit-container[data-theme="light"],\n' +
+					'.highlightit-container pre[data-theme="light"],\n' +
+					'.highlightit-container code[data-theme="light"]',
+				dark:
+					'.highlightit-container[data-theme="dark"],\n' +
+					'.highlightit-container pre[data-theme="dark"],\n' +
+					'.highlightit-container code[data-theme="dark"]'
+			}
+
+			combinedContent += buildContainerCSS(containerSelectors.light, lightProps) + '\n'
+			combinedContent += buildContainerCSS(containerSelectors.dark, darkProps)
+
+			const outputFilename = `${baseName}.css`
+			await writeThemeFile(outputFilename, combinedContent, combinedLicenseHeaders)
 		}
 
 		if (hasVariants) {
-			const variants = new Map();
-			const processedFiles = new Set();
+			const variants = new Map()
+			const processedFiles = new Set()
 
-			relatedFiles.forEach(file => {
-				let variant = null, isLight = false, isDark = false;
-				
+			relatedFiles.forEach((file) => {
+				let variant = null,
+					isLight = false,
+					isDark = false
+
 				if (file.match(/-light-([^.]+)\.css$/)) {
-					variant = file.match(/-light-([^.]+)\.css$/)[1];
-					isLight = true;
+					variant = file.match(/-light-([^.]+)\.css$/)[1]
+					isLight = true
 				} else if (file.match(/-dark-([^.]+)\.css$/)) {
-					variant = file.match(/-dark-([^.]+)\.css$/)[1];
-					isDark = true;
-				} else if (file.match(new RegExp(`^${baseName}-([^.]+)\\.css$`)) && 
-						  !file.includes('-light') && !file.includes('-dark')) {
-					variant = file.match(new RegExp(`^${baseName}-([^.]+)\\.css$`))[1];
-					if (variant === 'dimmed') isDark = true;
+					variant = file.match(/-dark-([^.]+)\.css$/)[1]
+					isDark = true
+				} else if (
+					file.match(new RegExp(`^${baseName}-([^.]+)\\.css$`)) &&
+					!file.includes('-light') &&
+					!file.includes('-dark')
+				) {
+					variant = file.match(new RegExp(`^${baseName}-([^.]+)\\.css$`))[1]
+					if (variant === 'dimmed') isDark = true
 				}
 
 				if (variant) {
 					if (!variants.has(variant)) {
-						variants.set(variant, { light: null, dark: null, base: null });
+						variants.set(variant, { light: null, dark: null, base: null })
 					}
-					
-					if (isLight) variants.get(variant).light = file;
-					else if (isDark) variants.get(variant).dark = file;
-					else variants.get(variant).base = file;
-					
-					if (file.includes('-light-') || file.includes('-dark-') ||
-					   (file.match(new RegExp(`^${baseName}-[^.]+\\.css$`)) && !file.match(new RegExp(`^${baseName}\\.css$`)))) {
-						processedFiles.add(file);
+
+					if (isLight) variants.get(variant).light = file
+					else if (isDark) variants.get(variant).dark = file
+					else variants.get(variant).base = file
+
+					if (
+						file.includes('-light-') ||
+						file.includes('-dark-') ||
+						(file.match(new RegExp(`^${baseName}-[^.]+\\.css$`)) &&
+							!file.match(new RegExp(`^${baseName}\\.css$`)))
+					) {
+						processedFiles.add(file)
 					}
 				}
-			});
+			})
 
 			for (const [variant, files] of variants.entries()) {
-				let variantLightFile = files.light || lightFile;
-				let variantDarkFile = files.dark || darkFile;
-				
+				let variantLightFile = files.light || lightFile
+				let variantDarkFile = files.dark || darkFile
+
 				if (files.base) {
 					if (variant === 'dimmed') {
-						variantDarkFile = files.base;
-						if (!variantLightFile && lightFile) variantLightFile = lightFile;
+						variantDarkFile = files.base
+						if (!variantLightFile && lightFile) variantLightFile = lightFile
 					} else {
-						if (!variantLightFile) variantLightFile = files.base;
-						if (!variantDarkFile) variantDarkFile = files.base;
+						if (!variantLightFile) variantLightFile = files.base
+						if (!variantDarkFile) variantDarkFile = files.base
 					}
 				}
-				
-				if (!variantLightFile && variantDarkFile) variantLightFile = variantDarkFile;
-				else if (!variantDarkFile && variantLightFile) variantDarkFile = variantLightFile;
-				
+
 				if (!variantLightFile || !variantDarkFile) {
-					console.warn(`Could not find required files for variant: ${variant}, skipping`);
-					continue;
+					console.warn(`Could not find required files for variant: ${variant}, skipping`)
+					continue
 				}
-				
-				const variantLicenseHeaders = new Set();
-				const variantLightContent = readFile(variantLightFile);
-				const variantDarkContent = readFile(variantDarkFile);
-				
-				extractLicense(variantLightContent).forEach(match => {
-					variantLicenseHeaders.add(match);
-				});
-				
-				extractLicense(variantDarkContent).forEach(match => {
-					variantLicenseHeaders.add(match);
-				});
-				
+
+				const variantLicenseHeaders = new Set()
+				const variantLightContent = readFile(variantLightFile)
+				const variantDarkContent = readFile(variantDarkFile)
+
+				extractLicense(variantLightContent).forEach((match) => {
+					variantLicenseHeaders.add(match)
+				})
+
+				extractLicense(variantDarkContent).forEach((match) => {
+					variantLicenseHeaders.add(match)
+				})
+
 				if (files.base) {
-					extractLicense(readFile(files.base)).forEach(match => {
-						variantLicenseHeaders.add(match);
-					});
+					extractLicense(readFile(files.base)).forEach((match) => {
+						variantLicenseHeaders.add(match)
+					})
 				}
-				
-				const { baseStyles: variantLightBaseStyles } = extractCssRules(variantLightContent);
-				const { baseStyles: variantDarkBaseStyles } = extractCssRules(variantDarkContent);
-				
-				const variantLightProps = {};
-				const variantDarkProps = {};
-				
-				extractPropertiesFromCSS(variantLightContent, variantLightProps);
-				extractPropertiesFromCSS(variantDarkContent, variantDarkProps);
-				
-				const combinedBaseStyles = [...new Set([...variantLightBaseStyles, ...variantDarkBaseStyles])];
-				const variantCombinedLicenseHeaders = Array.from(variantLicenseHeaders).join('\n\n') + 
-														(variantLicenseHeaders.size ? '\n\n' : '');
-				
-				let variantCombined = variantCombinedLicenseHeaders + combinedBaseStyles.join('\n\n') + '\n\n';
-				variantCombined += buildContainerCSS(':root', variantDarkProps) + '\n';
-				variantCombined += buildContainerCSS('.highlightit-theme-light', variantLightProps) + '\n';
-				variantCombined += '@media (prefers-color-scheme: light) {\n' +
+
+				const { baseStyles: variantLightBaseStyles } = extractCssRules(variantLightContent)
+				const { baseStyles: variantDarkBaseStyles } = extractCssRules(variantDarkContent)
+
+				const variantLightProps = {}
+				const variantDarkProps = {}
+
+				extractPropertiesFromCSS(variantLightContent, variantLightProps)
+				extractPropertiesFromCSS(variantDarkContent, variantDarkProps)
+
+				const combinedBaseStyles = [
+					...new Set([...variantLightBaseStyles, ...variantDarkBaseStyles])
+				]
+				const variantCombinedLicenseHeaders =
+					Array.from(variantLicenseHeaders).join('\n\n') +
+					(variantLicenseHeaders.size ? '\n\n' : '')
+
+				let variantCombined =
+					variantCombinedLicenseHeaders + combinedBaseStyles.join('\n\n') + '\n\n'
+				variantCombined += buildContainerCSS(':root', variantDarkProps) + '\n'
+				variantCombined +=
+					buildContainerCSS('.highlightit-theme-light', variantLightProps) + '\n'
+				variantCombined +=
+					'@media (prefers-color-scheme: light) {\n' +
 					buildContainerCSS('  :root.highlightit-theme-auto', variantLightProps)
 						.split('\n')
-						.map(line => '  ' + line)
+						.map((line) => '  ' + line)
 						.join('\n') +
-					'}\n\n';
-				
+					'}\n\n'
+
 				const containerSelectors = {
-					light: '.highlightit-container[data-theme="light"],\n' +
-						   '.highlightit-container pre[data-theme="light"],\n' +
-						   '.highlightit-container code[data-theme="light"]',
-					dark: '.highlightit-container[data-theme="dark"],\n' +
-						  '.highlightit-container pre[data-theme="dark"],\n' +
-						  '.highlightit-container code[data-theme="dark"]'
-				};
-				
-				variantCombined += buildContainerCSS(containerSelectors.light, variantLightProps) + '\n';
-				variantCombined += buildContainerCSS(containerSelectors.dark, variantDarkProps);
-				
-				const variantFilename = `${baseName}-${variant}.css`;
-				await writeThemeFile(variantFilename, variantCombined, variantCombinedLicenseHeaders);
+					light:
+						'.highlightit-container[data-theme="light"],\n' +
+						'.highlightit-container pre[data-theme="light"],\n' +
+						'.highlightit-container code[data-theme="light"]',
+					dark:
+						'.highlightit-container[data-theme="dark"],\n' +
+						'.highlightit-container pre[data-theme="dark"],\n' +
+						'.highlightit-container code[data-theme="dark"]'
+				}
+
+				variantCombined +=
+					buildContainerCSS(containerSelectors.light, variantLightProps) + '\n'
+				variantCombined += buildContainerCSS(containerSelectors.dark, variantDarkProps)
+
+				const variantFilename = `${baseName}-${variant}.css`
+				await writeThemeFile(
+					variantFilename,
+					variantCombined,
+					variantCombinedLicenseHeaders
+				)
 			}
 
-			if (lightFile && lightFile !== `${baseName}.css`) processedFiles.add(lightFile);
-			if (darkFile && darkFile !== `${baseName}.css`) processedFiles.add(darkFile);
-			
-			processedFiles.forEach(file => {
+			if (lightFile && lightFile !== `${baseName}.css`) processedFiles.add(lightFile)
+			if (darkFile && darkFile !== `${baseName}.css`) processedFiles.add(darkFile)
+
+			processedFiles.forEach((file) => {
 				if (file === `${baseName}.css`) {
-					return;
+					return
 				}
-				
-				const filePath = path.join(stylesDir, file);
-				const minFilePath = filePath.replace('.css', '.min.css');
-				
+
+				const filePath = path.join(stylesDir, file)
+				const minFilePath = filePath.replace('.css', '.min.css')
+
 				if (fs.existsSync(filePath)) {
-					fs.unlinkSync(filePath);
+					fs.unlinkSync(filePath)
 				}
-				
+
 				if (fs.existsSync(minFilePath)) {
-					fs.unlinkSync(minFilePath);
+					fs.unlinkSync(minFilePath)
 				}
-			});
+			})
 		}
 
-		relatedFiles.forEach(file => {
+		relatedFiles.forEach((file) => {
 			if (standaloneFiles.has(file)) {
-				return;
+				return
 			}
-			
-			const isLightOrDarkFile = file.includes('-light') || file.includes('-dark');
-			const isBaseFile = file === `${baseName}.css`;
-			const isVariantFile = file.match(new RegExp(`^${baseName}-[^.]+\\.css$`)) && !isLightOrDarkFile;
-			
+
+			const isLightOrDarkFile = file.includes('-light') || file.includes('-dark')
+			const isBaseFile = file === `${baseName}.css`
+			const isVariantFile =
+				file.match(new RegExp(`^${baseName}-[^.]+\\.css$`)) && !isLightOrDarkFile
+
 			if (isLightOrDarkFile || (!isBaseFile && !isVariantFile)) {
-				const filePath = path.join(stylesDir, file);
-				const minFilePath = filePath.replace('.css', '.min.css');
-				
+				const filePath = path.join(stylesDir, file)
+				const minFilePath = filePath.replace('.css', '.min.css')
+
 				if (fs.existsSync(filePath)) {
-					fs.unlinkSync(filePath);
+					fs.unlinkSync(filePath)
 				}
-				
+
 				if (fs.existsSync(minFilePath)) {
-					fs.unlinkSync(minFilePath);
+					fs.unlinkSync(minFilePath)
 				}
 			}
-		});
+		})
 	}
 
 	fs.readdirSync(stylesDir)
-		.filter(file => 
-			!standaloneFiles.has(file) && 
-			(file.includes('-light') || file.includes('-dark')) && 
-			file.endsWith('.css')
+		.filter(
+			(file) =>
+				!standaloneFiles.has(file) &&
+				(file.includes('-light') || file.includes('-dark')) &&
+				file.endsWith('.css')
 		)
-		.forEach(file => {
-			const filePath = path.join(stylesDir, file);
-			const minFilePath = filePath.replace('.css', '.min.css');
-			if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-			if (fs.existsSync(minFilePath)) fs.unlinkSync(minFilePath);
-		});
+		.forEach((file) => {
+			const filePath = path.join(stylesDir, file)
+			const minFilePath = filePath.replace('.css', '.min.css')
+			if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
+			if (fs.existsSync(minFilePath)) fs.unlinkSync(minFilePath)
+		})
 }
 
 async function build() {
