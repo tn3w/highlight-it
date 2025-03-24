@@ -719,7 +719,7 @@ class HighlightIt {
 	 * @private
 	 */
 	static escapeHtml(html) {
-		const entityMap = {
+		return html.replace(/[&<>"'`=/]/g, char => ({
 			'&': '&amp;',
 			'<': '&lt;',
 			'>': '&gt;',
@@ -728,9 +728,7 @@ class HighlightIt {
 			'/': '&#x2F;',
 			'`': '&#x60;',
 			'=': '&#x3D;'
-		}
-
-		return html.replace(/[&<>"'`=/]/g, (s) => entityMap[s])
+		}[char]));
 	}
 
 	/**
@@ -775,55 +773,53 @@ class HighlightIt {
 		}, 0)
 	}
 
+	/**
+	 * Rehighlight an element with updated content
+	 * @param {HTMLElement} element - The code element to rehighlight
+	 * @param {HTMLElement} container - The container element
+	 * @param {string} languageOrFilename - The language or filename to use
+	 * @param {string} code - The code content
+	 * @param {boolean} showLanguage - Whether to show the language label
+	 * @private
+	 */
 	static rehighlightElement(element, container, languageOrFilename, code, showLanguage) {
-		const cleanedCode = code.trim()
-
-		let language = null
-		let displayLabel = null
-		const withLines = container.classList.contains('highlightit-with-lines')
+		const cleanedCode = code.trim();
+		const withLines = container.classList.contains('highlightit-with-lines');
+		let language = null;
+		let displayLabel = languageOrFilename;
 
 		if (languageOrFilename) {
-			language = this.getLanguageFromFilename(languageOrFilename) || languageOrFilename
-			displayLabel = languageOrFilename
+			language = this.getLanguageFromFilename(languageOrFilename) || languageOrFilename;
 		}
 
-		let result
 		try {
-			if (language) {
-				result = hljs.highlight(cleanedCode, { language })
-			} else {
-				result = { value: this.escapeHtml(cleanedCode) }
+			const result = language ? 
+				hljs.highlight(cleanedCode, { language }) : 
+				{ value: this.escapeHtml(cleanedCode) };
+			
+			element.innerHTML = result.value;
+
+			if (withLines) {
+				const oldLineNumbers = container.querySelector('.highlightit-line-numbers');
+				oldLineNumbers?.remove();
+				this.addLineNumbers(element, cleanedCode);
 			}
-		} catch (error) {
-			console.warn(`HighlightIt: Error highlighting with language ${language}`, error)
-			result = { value: this.escapeHtml(cleanedCode) }
-		}
 
-		element.innerHTML = result.value
-
-		if (withLines) {
-			const oldLineNumbers = container.querySelector('.highlightit-line-numbers')
-			if (oldLineNumbers) {
-				oldLineNumbers.remove()
+			const copyButton = container.querySelector('.highlightit-copy, .highlightit-floating-copy');
+			if (copyButton) {
+				copyButton.replaceWith(this.createCopyButton(cleanedCode));
 			}
-			this.addLineNumbers(element, cleanedCode)
-		}
 
-		const copyButton =
-			container.querySelector('.highlightit-copy') ||
-			container.querySelector('.highlightit-floating-copy')
-		if (copyButton) {
-			copyButton.replaceWith(this.createCopyButton(cleanedCode))
-		}
-
-		if (showLanguage && language) {
-			const header = container.querySelector('.highlightit-header')
-			if (header) {
-				const languageLabel = header.querySelector('.highlightit-language')
+			if (showLanguage && language) {
+				const header = container.querySelector('.highlightit-header');
+				const languageLabel = header?.querySelector('.highlightit-language');
 				if (languageLabel) {
-					languageLabel.textContent = displayLabel || language
+					languageLabel.textContent = displayLabel || language;
 				}
 			}
+		} catch (error) {
+			console.warn(`HighlightIt: Error highlighting with language ${language}`, error);
+			element.innerHTML = this.escapeHtml(cleanedCode);
 		}
 	}
 }

@@ -29,8 +29,8 @@ Add highlight-it using this script:
 
 ```html
 <script
-	src="https://cdn.jsdelivr.net/npm/highlight-it@0.1.12/dist/highlight-it-min.js"
-	integrity="sha512-dLeJdV9GG5NoURpsiN42cA2dveMc+KJjHpa7owz52goxkTCRvDv94+8DRhSxnz6SlCpZXZXLqYCquY3Avb/0ng=="
+	src="https://cdn.jsdelivr.net/npm/highlight-it@0.1.13/dist/highlight-it-min.js"
+	integrity="sha512-ypp8YbGTfp+c8+Dyu7H9uVikm6ZibU0fXDztqqt1wz0+l7YDxcw/JM2aX8H4AjtPzv1fUU8vNeKpE//L7657Hg=="
 	crossorigin="anonymous"
 ></script>
 <script>
@@ -177,6 +177,35 @@ npm run build
 ```
 
 Open `demo.html` in your browser to see the library in action.
+
+## Coming soon?
+
+### 🚀 Epic Features Coming Your Way!
+- [ ] **Speak Any Code's Language**: Because your obscure programming language deserves some love too! 🗣️
+- [ ] **Show Off Your Code**: Turn those beautiful snippets into shareable images. Perfect for Twitter bragging! 📸
+- [ ] **Find That One Line**: Lost in your code? Our search feature will be your best friend! 🔍
+- [ ] **Link Like a Pro**: Share exact lines of code. No more "it's somewhere in there"! 🔗
+- [ ] **Chat About Code**: Leave comments on specific lines, because code reviews should be social! 💬
+- [ ] **Time Travel**: Track code versions like a git ninja! ⏰
+- [ ] **Share the Love**: Embed your awesome code anywhere and everywhere! 🌐
+- [ ] **Code Playground**: Run JavaScript/Python right in the browser. What could go wrong? 🎮
+- [ ] **Spot the Difference**: Side-by-side diffs that actually make sense! 👀
+- [ ] **Code for Everyone**: Making sure everyone can enjoy your code, no exceptions! ♿
+- [ ] **Spread the Word**: Share code snippets faster than you can say "Stack Overflow"! 🚀
+- [ ] **Save for Later**: Bookmark those golden code snippets for future inspiration! 🔖
+
+### 🛠️ Making Things Even More Awesome
+- [ ] **Speed Demon**: Making big code blocks load faster than your coffee break ⚡
+- [ ] **Mobile Magic**: Code that looks gorgeous even on tiny screens 📱
+- [ ] **Theme Party**: Create themes that make your code look like a million bucks 🎨
+- [ ] **Language Detective**: We'll figure out what language it is, probably! 🔍
+- [ ] **Oops Handler**: Because sometimes things go wrong, and that's okay 🤷
+- [ ] **Show & Tell**: More examples than you can shake a stick at! 📚
+- [ ] **Bug Squashing**: Testing all the weird edge cases you can think of 🐛
+- [ ] **Browser BFFs**: Works everywhere, even on your grandma's browser! 🌐
+- [ ] **Diet Mode**: Keeping our bundle size slimmer than a JavaScript framework 🏋️
+- [ ] **API Tales**: Documentation so good, you might actually read it! 📖
+- [ ] **Join the Party**: Contributing guidelines that don't make you cry! 🎉
 
 ## License
 
