@@ -1107,13 +1107,13 @@ function overrideSettings() {
 					htmlCode += '<script src="https://cdn.jsdelivr.net/npm/highlight-it@latest/dist/highlight-it-min.js"><\/script>\n';
 					
 					htmlCode += '<script>\n';
-					htmlCode += '  window.addEventListener(\'load\', () => {\n';
-					htmlCode += `    HighlightIt.init({\n      theme: '${currentTheme}',\n      // Your other options here\n      debounceTime: 40\n    });\n`;
-					htmlCode += '  });\n';
+					htmlCode += '	window.addEventListener(\'load\', () => {\n';
+					htmlCode += `		HighlightIt.init({\n			theme: '${currentTheme}',\n			debounceTime: 40\n		});\n`;
+					htmlCode += '	});\n';
 					htmlCode += '<\/script>\n\n';
 					
 					htmlCode += '<pre class="highlight-it" data-language="javascript">\n';
-					htmlCode += '  // Your code will be automatically highlighted\n';
+					htmlCode += '	// Your code will be automatically highlighted\n';
 					htmlCode += '<\/pre>';
 					
 					importCodeDisplay.textContent = htmlCode;

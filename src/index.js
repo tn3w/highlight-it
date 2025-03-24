@@ -6,6 +6,252 @@
 import './styles.css'
 import hljs from 'highlight.js'
 
+const polyfills = {
+	supports: {
+		requestAnimationFrame: typeof requestAnimationFrame === 'function',
+		ResizeObserver: typeof ResizeObserver === 'function',
+		MutationObserver: typeof MutationObserver === 'function',
+		classList: 'classList' in document.documentElement && typeof document.documentElement.classList !== 'undefined',
+		dataset: 'dataset' in document.documentElement && typeof document.documentElement.dataset !== 'undefined',
+		clipboard: 'clipboard' in navigator,
+		touch: 'ontouchstart' in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0
+	},
+
+	requestAnimationFrame: (function () {
+		return (
+			window.requestAnimationFrame ||
+			window.webkitRequestAnimationFrame ||
+			window.mozRequestAnimationFrame ||
+			window.oRequestAnimationFrame ||
+			window.msRequestAnimationFrame ||
+			function (callback) {
+				return window.setTimeout(callback, 1000 / 60)
+			}
+		)
+	})(),
+
+	ResizeObserver: (function () {
+		if (typeof ResizeObserver === 'function') return ResizeObserver
+
+		return class ResizeObserver {
+			constructor(callback) {
+				this.callback = callback
+				this.observedElements = new Set()
+				this.observer = new MutationObserver(this.handleMutation.bind(this))
+			}
+
+			observe(element) {
+				if (this.observedElements.has(element)) return
+				this.observedElements.add(element)
+				this.observer.observe(element, {
+					attributes: true,
+					attributeFilter: ['style', 'class']
+				})
+				this.checkSize(element)
+			}
+
+			unobserve(element) {
+				this.observedElements.delete(element)
+				this.observer.unobserve(element)
+			}
+
+			disconnect() {
+				this.observer.disconnect()
+				this.observedElements.clear()
+			}
+
+			handleMutation(mutations) {
+				mutations.forEach((mutation) => {
+					if (mutation.target && this.observedElements.has(mutation.target)) {
+						this.checkSize(mutation.target)
+					}
+				})
+			}
+
+			checkSize(element) {
+				const size = {
+					width: element.offsetWidth,
+					height: element.offsetHeight
+				}
+				this.callback([{ target: element, contentRect: size }])
+			}
+		}
+	})(),
+
+	classList: {
+		add: function (element, className) {
+			if (!element) return;
+			
+			try {
+				if (this.supports.classList) {
+					element.classList.add(className);
+				} else {
+					const classes = (element.className || '').split(' ');
+					if (!classes.includes(className)) {
+						classes.push(className);
+					}
+					element.className = classes.join(' ');
+				}
+			} catch {
+				const classes = (element.className || '').split(' ');
+				if (!classes.includes(className)) {
+					classes.push(className);
+				}
+				element.className = classes.join(' ');
+			}
+		},
+		remove: function (element, className) {
+			if (!element) return;
+			
+			try {
+				if (this.supports.classList) {
+					element.classList.remove(className);
+				} else {
+					element.className = (element.className || '')
+						.split(' ')
+						.filter(c => c !== className)
+						.join(' ');
+				}
+			} catch {
+				element.className = (element.className || '')
+					.split(' ')
+					.filter(c => c !== className)
+					.join(' ');
+			}
+		},
+		contains: function (element, className) {
+			if (!element) return false;
+			
+			try {
+				if (this.supports.classList) {
+					return element.classList.contains(className);
+				}
+				return (element.className || '').split(' ').includes(className);
+			} catch {
+				return (element.className || '').split(' ').includes(className);
+			}
+		}
+	},
+
+	dataset: {
+		get: function (element, key) {
+			if (!element) return undefined
+
+			try {
+				if (this.supports.dataset) {
+					return element.dataset[key]
+				}
+				return element.getAttribute(`data-${key}`)
+			} catch {
+				return element.getAttribute(`data-${key}`)
+			}
+		},
+		set: function (element, key, value) {
+			if (!element) return
+
+			try {
+				if (this.supports.dataset) {
+					element.dataset[key] = value
+				} else {
+					element.setAttribute(`data-${key}`, value)
+				}
+			} catch {
+				element.setAttribute(`data-${key}`, value)
+			}
+		}
+	},
+
+	copyToClipboard: async function (text) {
+		if (this.supports.clipboard) {
+			try {
+				await navigator.clipboard.writeText(text)
+				return true
+			} catch {
+				//
+			}
+		}
+
+		const textArea = document.createElement('textarea')
+		textArea.value = text
+		textArea.style.position = 'fixed'
+		textArea.style.left = '-9999px'
+		document.body.appendChild(textArea)
+		textArea.focus()
+		textArea.select()
+
+		try {
+			const success = document.execCommand('copy')
+			document.body.removeChild(textArea)
+			return success
+		} catch {
+			document.body.removeChild(textArea)
+			return false
+		}
+	}
+}
+
+const cache = {
+	popularLanguages: new Set([
+		'javascript',
+		'typescript',
+		'python',
+		'java',
+		'html',
+		'css',
+		'scss',
+		'php',
+		'ruby',
+		'go',
+		'rust',
+		'c',
+		'cpp',
+		'csharp',
+		'bash',
+		'json',
+		'markdown',
+		'yaml',
+		'xml'
+	]),
+	extensionMap: new Map([
+		['js', 'javascript'],
+		['ts', 'typescript'],
+		['jsx', 'javascript'],
+		['tsx', 'typescript'],
+		['html', 'html'],
+		['css', 'css'],
+		['scss', 'scss'],
+		['sass', 'scss'],
+		['py', 'python'],
+		['rb', 'ruby'],
+		['java', 'java'],
+		['c', 'c'],
+		['cpp', 'cpp'],
+		['cs', 'csharp'],
+		['php', 'php'],
+		['go', 'go'],
+		['rust', 'rust'],
+		['rs', 'rust'],
+		['swift', 'swift'],
+		['md', 'markdown'],
+		['json', 'json'],
+		['xml', 'xml'],
+		['yaml', 'yaml'],
+		['yml', 'yaml'],
+		['sh', 'bash'],
+		['bash', 'bash']
+	]),
+	htmlEscapes: new Map([
+		['&', '&amp;'],
+		['<', '&lt;'],
+		['>', '&gt;'],
+		['"', '&quot;'],
+		["'", '&#39;'],
+		['/', '&#x2F;'],
+		['`', '&#x60;'],
+		['=', '&#x3D;']
+	])
+}
+
 /**
  * HighlightIt class for syntax highlighting
  */
@@ -37,28 +283,33 @@ class HighlightIt {
 		this.debounceTime = debounceTime
 		this.applyGlobalTheme(theme)
 
-		this.isTouchDevice =
-			'ontouchstart' in window ||
-			navigator.maxTouchPoints > 0 ||
-			navigator.msMaxTouchPoints > 0
+		this.isTouchDevice = polyfills.supports.touch
 
 		if (this.isTouchDevice) {
-			document.documentElement.classList.add('highlightit-touch-device')
+			polyfills.classList.add(document.documentElement, 'highlightit-touch-device')
 		}
 
-		const elements = document.querySelectorAll(selector + ':not(.highlightit-original)')
+		const elements = document.querySelectorAll(`${selector}:not(.highlightit-original)`)
 
-		elements.forEach((element) => {
-			this.processElement(
-				element,
-				autoDetect,
-				addCopyButton,
-				showLanguage,
-				addHeader,
-				addLines
-			)
-		})
+		const chunkSize = 50
+		const processChunk = (startIndex) => {
+			const endIndex = Math.min(startIndex + chunkSize, elements.length)
+			for (let i = startIndex; i < endIndex; i++) {
+				this.processElement(
+					elements[i],
+					autoDetect,
+					addCopyButton,
+					showLanguage,
+					addHeader,
+					addLines
+				)
+			}
+			if (endIndex < elements.length) {
+				polyfills.requestAnimationFrame(() => processChunk(endIndex))
+			}
+		}
 
+		processChunk(0)
 		this._initialized = true
 	}
 
@@ -316,7 +567,6 @@ class HighlightIt {
 				element,
 				container,
 				autoDetect,
-				shouldAddCopyButton,
 				showLanguage
 			)
 		}
@@ -359,8 +609,7 @@ class HighlightIt {
 				if (withLines) {
 					this.addLineNumbers(element, code)
 				}
-			} catch (error) {
-				console.warn(`HighlightIt: Error highlighting with language ${language}`, error)
+			} catch {
 				if (autoDetect) {
 					const result = this.autoDetectLanguage(code)
 					element.innerHTML = result.value
@@ -395,82 +644,34 @@ class HighlightIt {
 	 * @param {HTMLElement} element - The code element to watch
 	 * @param {HTMLElement} container - The container element
 	 * @param {boolean} autoDetect - Whether to auto-detect language
-	 * @param {boolean} addCopyButton - Whether to add a copy button
 	 * @param {boolean} showLanguage - Whether to show the language label
 	 * @private
 	 */
-	static setupMutationObserver(element, container, autoDetect, addCopyButton, showLanguage) {
+	static setupMutationObserver(element, container, autoDetect, showLanguage) {
+		if (!polyfills.supports.MutationObserver) {
+			return
+		}
+
 		const debounceTime = this.debounceTime || 30
 		let timeout = null
 
-		let originalElement = null
-		let linkId = null
-
-		const withLines = container.classList.contains('highlightit-with-lines')
-
-		if (element.parentElement && element.parentElement.dataset.linkedOriginal) {
-			linkId = element.parentElement.dataset.linkedOriginal
-		} else if (container && container.dataset.linkedOriginal) {
-			linkId = container.dataset.linkedOriginal
-		} else if (
-			element.parentElement &&
-			element.parentElement.getAttribute('data-linked-original')
-		) {
-			linkId = element.parentElement.getAttribute('data-linked-original')
-		} else if (container && container.getAttribute('data-linked-original')) {
-			linkId = container.getAttribute('data-linked-original')
-		}
-
-		if (linkId) {
-			originalElement = document.querySelector(
-				`.highlightit-original[data-highlightit-id="${linkId}"]`
-			)
-
-			if (!originalElement) {
-				originalElement = document.getElementById(linkId)
-			}
-		}
-
-		if (
-			!originalElement &&
-			container &&
-			container.previousSibling &&
-			container.previousSibling.classList &&
-			container.previousSibling.classList.contains('highlightit-original')
-		) {
-			originalElement = container.previousSibling
-		}
-
-		if (
-			!originalElement &&
-			element.parentElement &&
-			element.parentElement.getAttribute('data-original-id')
-		) {
-			const originalId = element.parentElement.getAttribute('data-original-id')
-			originalElement = document.getElementById(originalId)
-		} else if (!originalElement && container && container.getAttribute('data-original-id')) {
-			const originalId = container.getAttribute('data-original-id')
-			originalElement = document.getElementById(originalId)
-		}
-
+		const originalElement = this.findOriginalElement(element, container)
 		const elementToWatch = originalElement || element
-
 		const targetElement = element
-
 		const language =
-			element.dataset.language || (element.className.match(/language-(\w+)/) || [])[1] || null
+			polyfills.dataset.get(element, 'language') ||
+			(element.className.match(/language-(\w+)/) || [])[1] ||
+			null
 
 		const rehighlight = () => {
 			const originalCode = elementToWatch.querySelector('code') || elementToWatch
-			const rawCode = originalCode.textContent || ''
-			const code = rawCode.trim()
-
-			if (!code || code === '') return
+			const code = originalCode.textContent.trim()
+			if (!code) return
 
 			if (!language && autoDetect) {
 				const result = this.autoDetectLanguage(code)
 				targetElement.innerHTML = result.value
-				targetElement.classList.add(`language-${result.language || 'unknown'}`)
+				polyfills.classList.add(targetElement, `language-${result.language || 'unknown'}`)
 
 				if (showLanguage && result.language) {
 					const header = container.querySelector('.highlightit-header')
@@ -483,19 +684,16 @@ class HighlightIt {
 				}
 			} else {
 				this.rehighlightElement(targetElement, container, language, code, showLanguage)
-				targetElement.classList.add(`language-${language || 'unknown'}`)
+				polyfills.classList.add(targetElement, `language-${language || 'unknown'}`)
 			}
 
-			if (withLines) {
+			if (polyfills.classList.contains(container, 'highlightit-with-lines')) {
 				this.addLineNumbers(targetElement, code)
 			}
 		}
 
 		const observer = new MutationObserver(() => {
-			if (timeout) {
-				clearTimeout(timeout)
-			}
-
+			if (timeout) clearTimeout(timeout)
 			timeout = setTimeout(() => {
 				rehighlight()
 				timeout = null
@@ -590,25 +788,23 @@ class HighlightIt {
 		copyButton.setAttribute('aria-label', 'Copy code')
 		copyButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="highlightit-copy-icon"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="highlightit-check-icon" style="display: none;"><polyline points="20 6 9 17 4 12"></polyline></svg>`
 
-		copyButton.addEventListener('click', () => {
+		copyButton.addEventListener('click', async () => {
 			const codeToCopy = code.trim()
+			const success = await polyfills.copyToClipboard(codeToCopy)
 
-			navigator.clipboard
-				.writeText(codeToCopy)
-				.then(() => {
-					copyButton.classList.add('copied')
-					copyButton.querySelector('.highlightit-copy-icon').style.display = 'none'
-					copyButton.querySelector('.highlightit-check-icon').style.display = 'block'
+			if (success) {
+				polyfills.classList.add(copyButton, 'copied')
+				copyButton.querySelector('.highlightit-copy-icon').style.display = 'none'
+				copyButton.querySelector('.highlightit-check-icon').style.display = 'block'
 
-					setTimeout(() => {
-						copyButton.classList.remove('copied')
-						copyButton.querySelector('.highlightit-copy-icon').style.display = 'block'
-						copyButton.querySelector('.highlightit-check-icon').style.display = 'none'
-					}, 2000)
-				})
-				.catch((err) => {
-					console.error('Failed to copy code:', err)
-				})
+				setTimeout(() => {
+					polyfills.classList.remove(copyButton, 'copied')
+					copyButton.querySelector('.highlightit-copy-icon').style.display = 'block'
+					copyButton.querySelector('.highlightit-check-icon').style.display = 'none'
+				}, 2000)
+			} else {
+				console.warn('Failed to copy code')
+			}
 		})
 
 		return copyButton
@@ -639,37 +835,7 @@ class HighlightIt {
 	 */
 	static getLanguageFromFilename(filename) {
 		const extension = filename.split('.').pop().toLowerCase()
-
-		const extensionMap = {
-			js: 'javascript',
-			ts: 'typescript',
-			jsx: 'javascript',
-			tsx: 'typescript',
-			html: 'html',
-			css: 'css',
-			scss: 'scss',
-			sass: 'scss',
-			py: 'python',
-			rb: 'ruby',
-			java: 'java',
-			c: 'c',
-			cpp: 'cpp',
-			cs: 'csharp',
-			php: 'php',
-			go: 'go',
-			rust: 'rust',
-			rs: 'rust',
-			swift: 'swift',
-			md: 'markdown',
-			json: 'json',
-			xml: 'xml',
-			yaml: 'yaml',
-			yml: 'yaml',
-			sh: 'bash',
-			bash: 'bash'
-		}
-
-		return extensionMap[extension] || null
+		return cache.extensionMap.get(extension) || null
 	}
 
 	/**
@@ -679,37 +845,8 @@ class HighlightIt {
 	 * @private
 	 */
 	static autoDetectLanguage(code) {
-		const result = hljs.highlightAuto(code)
-
-		const popularLanguages = [
-			'javascript',
-			'typescript',
-			'python',
-			'java',
-			'html',
-			'css',
-			'scss',
-			'php',
-			'ruby',
-			'go',
-			'rust',
-			'c',
-			'cpp',
-			'csharp',
-			'bash',
-			'json',
-			'markdown',
-			'yaml',
-			'xml'
-		]
-
-		const popularResult = hljs.highlightAuto(code, popularLanguages)
-
-		if (popularResult.language) {
-			return popularResult
-		}
-
-		return result
+		const result = hljs.highlightAuto(code, Array.from(cache.popularLanguages))
+		return result.language ? result : hljs.highlightAuto(code)
 	}
 
 	/**
@@ -719,16 +856,7 @@ class HighlightIt {
 	 * @private
 	 */
 	static escapeHtml(html) {
-		return html.replace(/[&<>"'`=/]/g, char => ({
-			'&': '&amp;',
-			'<': '&lt;',
-			'>': '&gt;',
-			'"': '&quot;',
-			"'": '&#39;',
-			'/': '&#x2F;',
-			'`': '&#x60;',
-			'=': '&#x3D;'
-		}[char]));
+		return html.replace(/[&<>"'`=/]/g, (char) => cache.htmlEscapes.get(char))
 	}
 
 	/**
@@ -739,38 +867,39 @@ class HighlightIt {
 	 */
 	static addLineNumbers(element, code) {
 		const preElement = element.parentElement
+		if (preElement.querySelector('.highlightit-line-numbers')) return
 
-		if (preElement.querySelector('.highlightit-line-numbers')) {
-			return
-		}
-
-		const trimmedCode = code.trim()
-		const lines = trimmedCode.split('\n')
+		const lines = code.trim().split('\n')
 		const lineCount = lines.length
 
 		const lineNumbersWrapper = document.createElement('div')
 		lineNumbersWrapper.className = 'highlightit-line-numbers'
 
-		let lineNumbersHtml = ''
+		const fragment = document.createDocumentFragment()
 		for (let i = 1; i <= lineCount; i++) {
-			lineNumbersHtml += `<span class="highlightit-line-number">${i}</span>`
+			const span = document.createElement('span')
+			span.className = 'highlightit-line-number'
+			span.textContent = i
+			fragment.appendChild(span)
 		}
+		lineNumbersWrapper.appendChild(fragment)
 
-		lineNumbersWrapper.innerHTML = lineNumbersHtml
+		polyfills.classList.add(preElement, 'highlightit-has-line-numbers')
+		preElement.insertBefore(lineNumbersWrapper, preElement.firstChild)
 
-		preElement.classList.add('highlightit-has-line-numbers')
-		preElement.prepend(lineNumbersWrapper)
-
-		setTimeout(() => {
-			const renderedLineCount = element.innerHTML.split('\n').length
+		const resizeObserver = new polyfills.ResizeObserver((entries) => {
+			const element = entries[0].target
 			const codeHeight = element.offsetHeight
+			const renderedLineCount = element.innerHTML.split('\n').length
 			const lineHeight = codeHeight / renderedLineCount
 
 			const lineNumbers = lineNumbersWrapper.querySelectorAll('.highlightit-line-number')
 			lineNumbers.forEach((lineNumber) => {
 				lineNumber.style.height = `${lineHeight}px`
 			})
-		}, 0)
+		})
+
+		resizeObserver.observe(element)
 	}
 
 	/**
@@ -783,44 +912,70 @@ class HighlightIt {
 	 * @private
 	 */
 	static rehighlightElement(element, container, languageOrFilename, code, showLanguage) {
-		const cleanedCode = code.trim();
-		const withLines = container.classList.contains('highlightit-with-lines');
-		let language = null;
-		let displayLabel = languageOrFilename;
+		const cleanedCode = code.trim()
+		const withLines = container.classList.contains('highlightit-with-lines')
+		let language = null
+		let displayLabel = languageOrFilename
 
 		if (languageOrFilename) {
-			language = this.getLanguageFromFilename(languageOrFilename) || languageOrFilename;
+			language = this.getLanguageFromFilename(languageOrFilename) || languageOrFilename
 		}
 
 		try {
-			const result = language ? 
-				hljs.highlight(cleanedCode, { language }) : 
-				{ value: this.escapeHtml(cleanedCode) };
-			
-			element.innerHTML = result.value;
+			const result = language
+				? hljs.highlight(cleanedCode, { language })
+				: { value: this.escapeHtml(cleanedCode) }
+
+			element.innerHTML = result.value
 
 			if (withLines) {
-				const oldLineNumbers = container.querySelector('.highlightit-line-numbers');
-				oldLineNumbers?.remove();
-				this.addLineNumbers(element, cleanedCode);
+				const oldLineNumbers = container.querySelector('.highlightit-line-numbers')
+				oldLineNumbers?.remove()
+				this.addLineNumbers(element, cleanedCode)
 			}
 
-			const copyButton = container.querySelector('.highlightit-copy, .highlightit-floating-copy');
+			const copyButton = container.querySelector(
+				'.highlightit-copy, .highlightit-floating-copy'
+			)
 			if (copyButton) {
-				copyButton.replaceWith(this.createCopyButton(cleanedCode));
+				copyButton.replaceWith(this.createCopyButton(cleanedCode))
 			}
 
 			if (showLanguage && language) {
-				const header = container.querySelector('.highlightit-header');
-				const languageLabel = header?.querySelector('.highlightit-language');
+				const header = container.querySelector('.highlightit-header')
+				const languageLabel = header?.querySelector('.highlightit-language')
 				if (languageLabel) {
-					languageLabel.textContent = displayLabel || language;
+					languageLabel.textContent = displayLabel || language
 				}
 			}
 		} catch (error) {
-			console.warn(`HighlightIt: Error highlighting with language ${language}`, error);
-			element.innerHTML = this.escapeHtml(cleanedCode);
+			console.warn(`HighlightIt: Error highlighting with language ${language}`, error)
+			element.innerHTML = this.escapeHtml(cleanedCode)
 		}
+	}
+
+	static findOriginalElement(element, container) {
+		let linkId =
+			element.parentElement?.dataset.linkedOriginal ||
+			container?.dataset.linkedOriginal ||
+			element.parentElement?.getAttribute('data-linked-original') ||
+			container?.getAttribute('data-linked-original')
+
+		if (linkId) {
+			return (
+				document.querySelector(`.highlightit-original[data-highlightit-id="${linkId}"]`) ||
+				document.getElementById(linkId)
+			)
+		}
+
+		if (container?.previousSibling?.classList?.contains('highlightit-original')) {
+			return container.previousSibling
+		}
+
+		const originalId =
+			element.parentElement?.getAttribute('data-original-id') ||
+			container?.getAttribute('data-original-id')
+		return originalId ? document.getElementById(originalId) : null
 	}
 }
 

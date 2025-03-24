@@ -32,6 +32,18 @@ export interface HighlightItOptions {
 	showLanguage?: boolean
 
 	/**
+	 * Whether to add header section
+	 * @default true
+	 */
+	addHeader?: boolean
+
+	/**
+	 * Whether to add line numbers
+	 * @default false
+	 */
+	addLines?: boolean
+
+	/**
 	 * Theme to use ('light', 'dark', or 'auto')
 	 * @default 'auto'
 	 */
@@ -67,22 +79,22 @@ export interface HighlightElementOptions {
 	showLanguage?: boolean
 
 	/**
+	 * Whether to add header section
+	 * @default true
+	 */
+	addHeader?: boolean
+
+	/**
 	 * Whether to add line numbers
 	 * @default false
 	 */
-	withLines?: boolean
+	addLines?: boolean
 
 	/**
 	 * Whether to enable live updates
 	 * @default false
 	 */
 	withReload?: boolean
-
-	/**
-	 * Whether to hide the header
-	 * @default false
-	 */
-	noHeader?: boolean
 
 	/**
 	 * The language to use for syntax highlighting
@@ -126,13 +138,17 @@ declare class HighlightIt {
 	 * @param autoDetect - Whether to auto-detect language
 	 * @param addCopyButton - Whether to add a copy button
 	 * @param showLanguage - Whether to show the language label
+	 * @param addHeader - Whether to add header section
+	 * @param addLines - Whether to add line numbers
 	 * @private
 	 */
 	private static processElement(
 		element: HTMLElement,
 		autoDetect: boolean,
 		addCopyButton: boolean,
-		showLanguage: boolean
+		showLanguage: boolean,
+		addHeader: boolean,
+		addLines: boolean
 	): void
 
 	/**
@@ -141,13 +157,17 @@ declare class HighlightIt {
 	 * @param autoDetect - Whether to auto-detect language
 	 * @param addCopyButton - Whether to add a copy button
 	 * @param showLanguage - Whether to show the language label
+	 * @param addHeader - Whether to add header section
+	 * @param addLines - Whether to add line numbers
 	 * @private
 	 */
 	private static highlightElement(
 		element: HTMLElement,
 		autoDetect: boolean,
 		addCopyButton: boolean,
-		showLanguage: boolean
+		showLanguage: boolean,
+		addHeader: boolean,
+		addLines: boolean
 	): void
 
 	/**
@@ -155,7 +175,6 @@ declare class HighlightIt {
 	 * @param element - The code element to watch
 	 * @param container - The container element
 	 * @param autoDetect - Whether to auto-detect language
-	 * @param addCopyButton - Whether to add a copy button
 	 * @param showLanguage - Whether to show the language label
 	 * @private
 	 */
@@ -163,9 +182,48 @@ declare class HighlightIt {
 		element: HTMLElement,
 		container: HTMLElement,
 		autoDetect: boolean,
-		addCopyButton: boolean,
 		showLanguage: boolean
 	): void
+
+	/**
+	 * Create a styled container for code block
+	 * @param element - The code element to wrap
+	 * @returns The container element
+	 * @private
+	 */
+	private static createCodeContainer(element: HTMLElement): HTMLElement
+
+	/**
+	 * Create code header with language/filename label and copy button
+	 * @param displayLabel - The text to display (language or filename)
+	 * @param code - The code to copy
+	 * @param addCopyButton - Whether to add a copy button
+	 * @param showLanguage - Whether to show the language label
+	 * @returns The header element
+	 * @private
+	 */
+	private static createCodeHeader(
+		displayLabel: string | null,
+		code: string,
+		addCopyButton: boolean,
+		showLanguage: boolean
+	): HTMLElement
+
+	/**
+	 * Create copy button element
+	 * @param code - The code to copy
+	 * @returns The copy button element
+	 * @private
+	 */
+	private static createCopyButton(code: string): HTMLElement
+
+	/**
+	 * Create floating copy button for no-header mode
+	 * @param code - The code to copy
+	 * @returns The floating copy button element
+	 * @private
+	 */
+	private static createFloatingCopyButton(code: string): HTMLElement
 
 	/**
 	 * Get language from filename extension
@@ -211,10 +269,19 @@ declare class HighlightIt {
 	private static rehighlightElement(
 		element: HTMLElement,
 		container: HTMLElement,
-		languageOrFilename: string,
+		languageOrFilename: string | null,
 		code: string,
 		showLanguage: boolean
 	): void
+
+	/**
+	 * Find the original element for live updates
+	 * @param element - The code element
+	 * @param container - The container element
+	 * @returns The original element or null if not found
+	 * @private
+	 */
+	private static findOriginalElement(element: HTMLElement, container: HTMLElement): HTMLElement | null
 }
 
 export default HighlightIt
