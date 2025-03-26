@@ -47,6 +47,70 @@ function processJsFile(filePath) {
 		.replace(/export default HighlightIt;?\n?/g, '')
 }
 
+function extractLocalImports(filePath, basePath) {
+	const content = fs.readFileSync(filePath, 'utf8')
+	const imports = []
+
+	const importRegex = /import\s+(?:([^{}\s,]+)\s*,?\s*)?(?:{([^{}]*)})?\s+from\s+['"](\.[^'"]+)['"];?/g
+	let match
+
+	while ((match = importRegex.exec(content)) !== null) {
+		const defaultImport = match[1] ? match[1].trim() : null
+		const namedImports = match[2] ? match[2].trim().split(/\s*,\s*/) : []
+		const importPath = match[3]
+		
+		const resolvedPath = path.resolve(path.dirname(filePath), importPath)
+		
+		let actualPath = resolvedPath
+		if (!path.extname(resolvedPath)) {
+			const extensions = ['.js', '.mjs', '.cjs']
+			for (const ext of extensions) {
+				const testPath = resolvedPath + ext
+				if (fs.existsSync(testPath)) {
+					actualPath = testPath
+					break
+				}
+			}
+		}
+		
+		if (!fs.existsSync(actualPath)) {
+			actualPath = resolvedPath + '.js'
+			if (!fs.existsSync(actualPath)) {
+				console.warn(`Warning: Could not resolve import path: ${importPath}`)
+				continue
+			}
+		}
+
+		const relativePath = path.relative(basePath, actualPath)
+		
+		imports.push({
+			defaultImport,
+			namedImports,
+			importPath,
+			actualPath,
+			relativePath
+		})
+	}
+
+	return imports
+}
+
+function processLocalImport(importInfo) {
+	const content = fs.readFileSync(importInfo.actualPath, 'utf8')
+	
+	let processedContent = content
+		.replace(/import\s+(?:{[^}]*}\s+from\s+)?['"][^'"]+['"];?\n?/g, '')
+		.replace(/export\s+default\s+([^;]+);?/g, '')
+		.replace(/export\s+const\s+([^=]+)=/g, 'const $1=')
+		.replace(/export\s+function\s+([^(]+)/g, 'function $1')
+		.replace(/export\s+class\s+([^\s]+)/g, 'class $1')
+		.replace(/export\s+\{[^}]*\};?\n?/g, '')
+	
+	let output = `// Begin bundled module: ${importInfo.relativePath}\n${processedContent}\n// End bundled module: ${importInfo.relativePath}\n`
+	
+	return output
+}
+
 function extractCssImports(filePath, visitedFiles = new Set()) {
 	if (visitedFiles.has(filePath)) {
 		return []
@@ -663,6 +727,13 @@ async function build() {
 
 		const hljsCode = output[0].code
 		const indexJsPath = path.resolve(__dirname, 'src/index.js')
+		const basePath = path.resolve(__dirname, 'src')
+        
+		console.log('Processing local imports...')
+		const localImports = extractLocalImports(indexJsPath, basePath)
+		const localImportCode = localImports.map(processLocalImport).join('\n')
+		
+		console.log(`Found ${localImports.length} local imports to bundle`)
 
 		const [cssImports, indexJsContent] = await Promise.all([
 			Promise.resolve(extractCssImports(indexJsPath)),
@@ -689,6 +760,7 @@ function injectCSS(css) {
 			...cssVariables,
 			injectCssFunc,
 			hljsCode,
+			localImportCode,  // Add the bundled local imports before the main code
 			indexJsContent
 				.replace(/import\s+.*?from\s+['"].*?['"];?/g, '')
 				.replace(/import\s+['"].*?['"];?/g, ''),
