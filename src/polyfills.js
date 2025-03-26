@@ -7,10 +7,17 @@ const polyfills = {
 		requestAnimationFrame: typeof requestAnimationFrame === 'function',
 		ResizeObserver: typeof ResizeObserver === 'function',
 		MutationObserver: typeof MutationObserver === 'function',
-		classList: 'classList' in document.documentElement && typeof document.documentElement.classList !== 'undefined',
-		dataset: 'dataset' in document.documentElement && typeof document.documentElement.dataset !== 'undefined',
+		classList:
+			'classList' in document.documentElement &&
+			typeof document.documentElement.classList !== 'undefined',
+		dataset:
+			'dataset' in document.documentElement &&
+			typeof document.documentElement.dataset !== 'undefined',
 		clipboard: 'clipboard' in navigator,
-		touch: 'ontouchstart' in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0
+		touch:
+			'ontouchstart' in window ||
+			navigator.maxTouchPoints > 0 ||
+			navigator.msMaxTouchPoints > 0
 	},
 
 	requestAnimationFrame: (function () {
@@ -76,55 +83,55 @@ const polyfills = {
 
 	classList: {
 		add: function (element, className) {
-			if (!element) return;
-			
+			if (!element) return
+
 			try {
 				if (this.supports.classList) {
-					element.classList.add(className);
+					element.classList.add(className)
 				} else {
-					const classes = (element.className || '').split(' ');
+					const classes = (element.className || '').split(' ')
 					if (!classes.includes(className)) {
-						classes.push(className);
+						classes.push(className)
 					}
-					element.className = classes.join(' ');
+					element.className = classes.join(' ')
 				}
 			} catch {
-				const classes = (element.className || '').split(' ');
+				const classes = (element.className || '').split(' ')
 				if (!classes.includes(className)) {
-					classes.push(className);
+					classes.push(className)
 				}
-				element.className = classes.join(' ');
+				element.className = classes.join(' ')
 			}
 		},
 		remove: function (element, className) {
-			if (!element) return;
-			
+			if (!element) return
+
 			try {
 				if (this.supports.classList) {
-					element.classList.remove(className);
+					element.classList.remove(className)
 				} else {
 					element.className = (element.className || '')
 						.split(' ')
-						.filter(c => c !== className)
-						.join(' ');
+						.filter((c) => c !== className)
+						.join(' ')
 				}
 			} catch {
 				element.className = (element.className || '')
 					.split(' ')
-					.filter(c => c !== className)
-					.join(' ');
+					.filter((c) => c !== className)
+					.join(' ')
 			}
 		},
 		contains: function (element, className) {
-			if (!element) return false;
-			
+			if (!element) return false
+
 			try {
 				if (this.supports.classList) {
-					return element.classList.contains(className);
+					return element.classList.contains(className)
 				}
-				return (element.className || '').split(' ').includes(className);
+				return (element.className || '').split(' ').includes(className)
 			} catch {
-				return (element.className || '').split(' ').includes(className);
+				return (element.className || '').split(' ').includes(className)
 			}
 		}
 	},
@@ -186,4 +193,4 @@ const polyfills = {
 	}
 }
 
-export default polyfills;
+export default polyfills

@@ -29,8 +29,8 @@ Add highlight-it using this script:
 
 ```html
 <script
-	src="https://cdn.jsdelivr.net/npm/highlight-it@0.1.15/dist/highlight-it-min.js"
-	integrity="sha512-X9etn174XQlOCBt2Cb/rGJ54oR7lFl6FA6kZ9gVeIMjtlZBRRE/R+QPRxyvIibTtBCBdpUggKt4awIP2CJkChw=="
+	src="https://cdn.jsdelivr.net/npm/highlight-it@0.1.16/dist/highlight-it-min.js"
+	integrity="sha512-hJWSehqOXo2rIb3+fIOstpyklJa3tTL77pCD7/jwDk/xgYQmoQ0Y9GeKELRLowdTbO5rrImfkIC5thlrwnaISw=="
 	crossorigin="anonymous"
 ></script>
 <script>
@@ -64,6 +64,7 @@ HighlightIt supports the following data attributes to customize the appearance a
 | `data-filename`    | Displays a filename in the header and auto-detects language from file extension | `<div class="highlight-it" data-filename="example.js">const foo = 'bar';</div>` |
 | `data-theme`       | Sets the theme to 'light', 'dark', or 'auto' for the specific code block        | `<div class="highlight-it" data-theme="dark">const foo = 'bar';</div>`          |
 | `data-with-lines`  | Adds line numbers to the code block                                             | `<div class="highlight-it" data-with-lines>const foo = 'bar';</div>`            |
+| `data-line-start`  | Sets the starting line number for the code block and enables line numbers       | `<div class="highlight-it" data-line-start="10">const foo = 'bar';</div>`       |
 | `data-no-header`   | Removes the header (hides language label but keeps copy button as floating)     | `<div class="highlight-it" data-no-header>const foo = 'bar';</div>`             |
 | `data-no-copy`     | Hides the copy button                                                           | `<div class="highlight-it" data-no-copy>const foo = 'bar';</div>`               |
 | `data-with-reload` | Enables live updates - code will be rehighlighted when content changes          | `<div class="highlight-it" data-with-reload data-language="javascript"></div>`  |
@@ -72,22 +73,41 @@ HighlightIt supports the following data attributes to customize the appearance a
 
 ```html
 <!-- Auto-detect language -->
-<div class="highlight-it">const greeting = 'Hello, world!'; console.log(greeting);</div>
+<div class="highlight-it">
+const greeting = 'Hello, world!';
+console.log(greeting);
+</div>
 
 <!-- Basic usage with language -->
 <div class="highlight-it" data-language="javascript">
-	const greeting = 'Hello, world!'; console.log(greeting);
+const greeting = 'Hello, world!';
+console.log(greeting);
 </div>
 
 <!-- With filename and line numbers -->
 <div class="highlight-it" data-filename="app.js" data-with-lines>
-	function calculateTotal(items) { return items.map((item) => item.price) .reduce((total, price)
-	=> total + price, 0); }
+function calculateTotal(items) {
+    return items
+        .map((item) => item.price)
+        .reduce((total, price) => total + price, 0);
+}
+</div>
+
+<!-- With filename and line numbers starting from line 10 -->
+<div class="highlight-it" data-filename="app.js" data-line-start="10">
+function calculateTotal(items) {
+	return items
+		.map((item) => item.price)
+		.reduce((total, price) => total + price, 0);
+}
 </div>
 
 <!-- Dark theme without header -->
 <div class="highlight-it" data-language="css" data-theme="dark" data-no-header>
-	.container { display: flex; justify-content: center; }
+.container {
+	display: flex;
+	justify-content: center;
+}
 </div>
 
 <!-- With live updates for streaming code -->
@@ -205,7 +225,6 @@ Open `demo.html` in your browser to see the library in action.
 - [ ] **Browser BFFs**: Works everywhere, even on your grandma's browser! 🌐
 - [ ] **Diet Mode**: Keeping our bundle size slimmer than a JavaScript framework 🏋️
 - [ ] **API Tales**: Documentation so good, you might actually read it! 📖
-- [ ] **Join the Party**: Contributing guidelines that don't make you cry! 🎉
 
 ## License
 

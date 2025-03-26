@@ -90,6 +90,11 @@ class HighlightIt {
 			element.textContent = element.textContent.trim()
 		}
 
+		if (element.dataset.lineStart !== undefined) {
+			element.dataset.withLines = ''
+			addLines = true
+		}
+
 		if (
 			element.tagName.toLowerCase() === 'code' &&
 			element.parentElement.tagName.toLowerCase() === 'pre'
@@ -118,6 +123,10 @@ class HighlightIt {
 
 				if (element.dataset.language) {
 					originalCodeElement.dataset.language = element.dataset.language
+				}
+
+				if (element.dataset.lineStart !== undefined) {
+					originalCodeElement.dataset.lineStart = element.dataset.lineStart
 				}
 
 				originalElement.appendChild(originalCodeElement)
@@ -155,6 +164,10 @@ class HighlightIt {
 					originalCodeElement.dataset.language = element.dataset.language
 				}
 
+				if (element.dataset.lineStart !== undefined) {
+					originalCodeElement.dataset.lineStart = element.dataset.lineStart
+				}
+
 				element.parentNode.insertBefore(originalElement, element)
 
 				element.setAttribute('data-linked-original', uniqueId)
@@ -187,6 +200,10 @@ class HighlightIt {
 
 				if (key === 'noHeader') {
 					container.classList.add('highlightit-no-header')
+				}
+
+				if (key === 'lineStart') {
+					codeElement.dataset.lineStart = element.dataset[key]
 				}
 			}
 
@@ -239,6 +256,7 @@ class HighlightIt {
 	 * - data-filename: Filename to display (also used to detect language)
 	 * - data-theme: Override global theme for this element ('light', 'dark', 'auto')
 	 * - data-with-lines: Add line numbers to the code block
+	 * - data-line-start: Set the starting line number (default is 1, can be positive or negative)
 	 * - data-no-header: Hide the header (language label and copy button)
 	 * - data-no-copy: Hide the copy button
 	 * - data-with-reload: Enable live updates - code will be rehighlighted automatically when content changes
@@ -320,12 +338,7 @@ class HighlightIt {
 		}
 
 		if (withLiveUpdates) {
-			this.setupMutationObserver(
-				element,
-				container,
-				autoDetect,
-				showLanguage
-			)
+			this.setupMutationObserver(element, container, autoDetect, showLanguage)
 		}
 
 		if (!language && autoDetect) {
@@ -632,11 +645,16 @@ class HighlightIt {
 		const lineNumbersWrapper = document.createElement('div')
 		lineNumbersWrapper.className = 'highlightit-line-numbers'
 
+		const startLine = parseInt(
+			element.dataset.lineStart || preElement.dataset.lineStart || 1,
+			10
+		)
+
 		const fragment = document.createDocumentFragment()
-		for (let i = 1; i <= lineCount; i++) {
+		for (let i = 0; i < lineCount; i++) {
 			const span = document.createElement('span')
 			span.className = 'highlightit-line-number'
-			span.textContent = i
+			span.textContent = startLine + i
 			fragment.appendChild(span)
 		}
 		lineNumbersWrapper.appendChild(fragment)
@@ -670,7 +688,10 @@ class HighlightIt {
 	 */
 	static rehighlightElement(element, container, languageOrFilename, code, showLanguage) {
 		const cleanedCode = code.trim()
-		const withLines = container.classList.contains('highlightit-with-lines')
+		const withLines =
+			container.classList.contains('highlightit-with-lines') ||
+			element.dataset.lineStart !== undefined
+
 		let language = null
 		let displayLabel = languageOrFilename
 
@@ -687,6 +708,18 @@ class HighlightIt {
 
 			if (withLines) {
 				const oldLineNumbers = container.querySelector('.highlightit-line-numbers')
+
+				let lineStart = undefined
+				if (element.dataset && element.dataset.lineStart !== undefined) {
+					lineStart = element.dataset.lineStart
+				} else if (container.dataset && container.dataset.lineStart !== undefined) {
+					lineStart = container.dataset.lineStart
+				}
+
+				if (lineStart !== undefined) {
+					element.dataset.lineStart = lineStart
+				}
+
 				oldLineNumbers?.remove()
 				this.addLineNumbers(element, cleanedCode)
 			}
@@ -750,6 +783,7 @@ export default HighlightIt
  * @param {boolean} [options.withReload=false] - Whether to enable live updates
  * @param {string} [options.language] - The language to use for syntax highlighting
  * @param {string} [options.theme] - Theme override for this element ('light', 'dark', or 'auto')
+ * @param {number} [options.lineStart] - Starting line number (default is 1, can be positive or negative)
  * @returns {HTMLElement} - The highlighted element container
  */
 HighlightIt.highlight = function (element, options = {}) {
@@ -771,11 +805,16 @@ HighlightIt.highlight = function (element, options = {}) {
 		addLines = false,
 		withReload = false,
 		language,
-		theme
+		theme,
+		lineStart
 	} = options
 
 	if (addLines) {
 		element.dataset.withLines = ''
+	}
+
+	if (lineStart !== undefined) {
+		element.dataset.lineStart = lineStart
 	}
 
 	if (withReload) {

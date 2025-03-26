@@ -64,4 +64,4 @@ const cache = {
 	])
 }
 
-export default cache; 
+export default cache

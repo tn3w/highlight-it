@@ -281,7 +281,10 @@ declare class HighlightIt {
 	 * @returns The original element or null if not found
 	 * @private
 	 */
-	private static findOriginalElement(element: HTMLElement, container: HTMLElement): HTMLElement | null
+	private static findOriginalElement(
+		element: HTMLElement,
+		container: HTMLElement
+	): HTMLElement | null
 }
 
 export default HighlightIt

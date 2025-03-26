@@ -51,16 +51,17 @@ function extractLocalImports(filePath, basePath) {
 	const content = fs.readFileSync(filePath, 'utf8')
 	const imports = []
 
-	const importRegex = /import\s+(?:([^{}\s,]+)\s*,?\s*)?(?:{([^{}]*)})?\s+from\s+['"](\.[^'"]+)['"];?/g
+	const importRegex =
+		/import\s+(?:([^{}\s,]+)\s*,?\s*)?(?:{([^{}]*)})?\s+from\s+['"](\.[^'"]+)['"];?/g
 	let match
 
 	while ((match = importRegex.exec(content)) !== null) {
 		const defaultImport = match[1] ? match[1].trim() : null
 		const namedImports = match[2] ? match[2].trim().split(/\s*,\s*/) : []
 		const importPath = match[3]
-		
+
 		const resolvedPath = path.resolve(path.dirname(filePath), importPath)
-		
+
 		let actualPath = resolvedPath
 		if (!path.extname(resolvedPath)) {
 			const extensions = ['.js', '.mjs', '.cjs']
@@ -72,7 +73,7 @@ function extractLocalImports(filePath, basePath) {
 				}
 			}
 		}
-		
+
 		if (!fs.existsSync(actualPath)) {
 			actualPath = resolvedPath + '.js'
 			if (!fs.existsSync(actualPath)) {
@@ -82,7 +83,7 @@ function extractLocalImports(filePath, basePath) {
 		}
 
 		const relativePath = path.relative(basePath, actualPath)
-		
+
 		imports.push({
 			defaultImport,
 			namedImports,
@@ -97,7 +98,7 @@ function extractLocalImports(filePath, basePath) {
 
 function processLocalImport(importInfo) {
 	const content = fs.readFileSync(importInfo.actualPath, 'utf8')
-	
+
 	let processedContent = content
 		.replace(/import\s+(?:{[^}]*}\s+from\s+)?['"][^'"]+['"];?\n?/g, '')
 		.replace(/export\s+default\s+([^;]+);?/g, '')
@@ -105,9 +106,9 @@ function processLocalImport(importInfo) {
 		.replace(/export\s+function\s+([^(]+)/g, 'function $1')
 		.replace(/export\s+class\s+([^\s]+)/g, 'class $1')
 		.replace(/export\s+\{[^}]*\};?\n?/g, '')
-	
+
 	let output = `// Begin bundled module: ${importInfo.relativePath}\n${processedContent}\n// End bundled module: ${importInfo.relativePath}\n`
-	
+
 	return output
 }
 
@@ -728,11 +729,11 @@ async function build() {
 		const hljsCode = output[0].code
 		const indexJsPath = path.resolve(__dirname, 'src/index.js')
 		const basePath = path.resolve(__dirname, 'src')
-        
+
 		console.log('Processing local imports...')
 		const localImports = extractLocalImports(indexJsPath, basePath)
 		const localImportCode = localImports.map(processLocalImport).join('\n')
-		
+
 		console.log(`Found ${localImports.length} local imports to bundle`)
 
 		const [cssImports, indexJsContent] = await Promise.all([
@@ -760,7 +761,7 @@ function injectCSS(css) {
 			...cssVariables,
 			injectCssFunc,
 			hljsCode,
-			localImportCode,  // Add the bundled local imports before the main code
+			localImportCode, // Add the bundled local imports before the main code
 			indexJsContent
 				.replace(/import\s+.*?from\s+['"].*?['"];?/g, '')
 				.replace(/import\s+['"].*?['"];?/g, ''),
