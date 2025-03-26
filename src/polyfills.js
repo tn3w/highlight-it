@@ -174,21 +174,29 @@ const polyfills = {
 			}
 		}
 
-		const textArea = document.createElement('textarea')
-		textArea.value = text
-		textArea.style.position = 'fixed'
-		textArea.style.left = '-9999px'
-		document.body.appendChild(textArea)
-		textArea.focus()
-		textArea.select()
-
 		try {
-			const success = document.execCommand('copy')
-			document.body.removeChild(textArea)
-			return success
+			const clipboardItem = new ClipboardItem({
+				'text/plain': new Blob([text], { type: 'text/plain' })
+			})
+			await navigator.clipboard.write([clipboardItem])
+			return true
 		} catch {
-			document.body.removeChild(textArea)
-			return false
+			const textArea = document.createElement('textarea')
+			textArea.value = text
+			textArea.style.position = 'fixed'
+			textArea.style.left = '-9999px'
+			document.body.appendChild(textArea)
+			textArea.focus()
+			textArea.select()
+
+			try {
+				const success = document.execCommand('copy')
+				document.body.removeChild(textArea)
+				return success
+			} catch {
+				document.body.removeChild(textArea)
+				return false
+			}
 		}
 	}
 }
