@@ -803,7 +803,7 @@ html .highlightit-container[data-theme='light'] pre {
 	z-index: 2;
 	top: 50%;
 	transform: translateY(-50%);
-	margin-right: 0.5em;
+	margin-right: 1em;
 }
 
 .highlightit-line-number-container:hover .highlightit-line-share {

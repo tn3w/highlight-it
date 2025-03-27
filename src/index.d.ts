@@ -391,6 +391,46 @@ declare class HighlightIt {
 	): void
 
 	/**
+	 * Setup a click handler for line share buttons
+	 * @param button The line share button element
+	 * @param container The container element
+	 *
+	 * @remarks
+	 * This method extracts the common click handler logic for line share buttons
+	 * to avoid duplicating code and allow updating just the handler when needed.
+	 * The handler is stored on the button element as _clickListener to allow
+	 * removal and replacement when the container ID changes.
+	 */
+	static setupLineShareButtonHandler(button: HTMLElement, container: HTMLElement): void
+
+	/**
+	 * Intelligently update line numbers for live updates, preserving existing DOM elements
+	 * @param lineNumbersWrapper The line numbers wrapper element
+	 * @param newLineCount The new line count
+	 * @param oldLineCount The old line count
+	 * @param startLine The starting line number
+	 * @param withShare Whether share buttons should be included
+	 * @param blockId The block ID for share links
+	 * @param container The container element
+	 *
+	 * @remarks
+	 * This method optimizes updates to line numbers when content changes:
+	 * - If line count is unchanged, it just updates text content and event handlers
+	 * - If lines are added, it only creates new line number elements
+	 * - If lines are removed, it removes excess line number elements
+	 * This approach prevents unnecessary DOM operations when lines are added or removed.
+	 */
+	static updateLineNumbersForLiveUpdates(
+		lineNumbersWrapper: HTMLElement,
+		newLineCount: number,
+		oldLineCount: number,
+		startLine: number,
+		withShare: boolean,
+		blockId: string,
+		container: HTMLElement
+	): void
+
+	/**
 	 * Find the original element for live updates
 	 * @param element - The code element
 	 * @param container - The container element
@@ -399,7 +439,7 @@ declare class HighlightIt {
 	 */
 	private static findOriginalElement(
 		element: HTMLElement,
-		container: HTMLElement
+		container: HTMLElement | null
 	): HTMLElement | null
 }
 
@@ -436,6 +476,12 @@ declare global {
 		 * @internal
 		 */
 		_currentBlockId?: string
+
+		/**
+		 * Stored click listener for line share buttons
+		 * @internal
+		 */
+		_clickListener?: (this: GlobalEventHandlers, ev: MouseEvent) => void
 
 		/**
 		 * Backup of the click handler

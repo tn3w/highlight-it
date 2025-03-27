@@ -744,20 +744,15 @@ class HighlightIt {
 			if (!code) return
 
 			if (code === lastProcessedCode) {
-				if (container.classList.contains('highlightit-with-lines')) {
-					const preElement = targetElement.parentElement
-					const lineNumbersWrapper = preElement.querySelector('.highlightit-line-numbers')
-					if (lineNumbersWrapper) {
-						this.updateLineHeights(targetElement, lineNumbersWrapper)
-					}
-				}
 				return
 			}
 
 			lastProcessedCode = code
 
 			if (withShare) {
-				this.updateCodeBlock(targetElement, container, language, code, showLanguage)
+				this.updateBlockId(container, code).then(() => {
+					this.updateCodeBlock(targetElement, container, language, code, showLanguage)
+				})
 			} else {
 				if (!language && autoDetect) {
 					if (
@@ -798,111 +793,34 @@ class HighlightIt {
 			if (container.classList.contains('highlightit-with-lines')) {
 				const preElement = targetElement.parentElement
 				const oldLineNumbers = preElement.querySelector('.highlightit-line-numbers')
-				const oldLines = oldLineNumbers
-					? oldLineNumbers.querySelectorAll(
-							'.highlightit-line-number-container, .highlightit-line-number'
-						)
-					: null
-
 				const lineCount = code.split('\n').length
-				const oldLineCount = oldLines ? oldLines.length : 0
+
+				const oldLineCount = oldLineNumbers
+					? oldLineNumbers.querySelectorAll('.highlightit-line-number-container')
+							.length ||
+						oldLineNumbers.querySelectorAll('.highlightit-line-number').length
+					: 0
+
 				let lineStart = parseInt(
 					targetElement.dataset.lineStart || preElement.dataset.lineStart || 1,
 					10
 				)
 
-				if (oldLineNumbers && lineCount !== oldLineCount) {
-					while (oldLineNumbers.firstChild) {
-						oldLineNumbers.removeChild(oldLineNumbers.firstChild)
-					}
-
+				if (oldLineNumbers) {
+					const blockId = container.getAttribute('data-original-id') || container.id
 					const withShare =
 						container.dataset.withShare !== undefined ||
 						element.dataset.withShare !== undefined
-					const blockId = container.getAttribute('data-original-id') || container.id
 
-					const fragment = document.createDocumentFragment()
-					for (let i = 0; i < lineCount; i++) {
-						if (withShare && blockId) {
-							const lineNumberContainer = document.createElement('div')
-							lineNumberContainer.className = 'highlightit-line-number-container'
-
-							const span = document.createElement('span')
-							span.className =
-								'highlightit-line-number highlightit-line-number-shareable'
-							span.textContent = lineStart + i
-
-							const lineNumber = lineStart + i
-							const lineShareButton = document.createElement('button')
-							lineShareButton.className = 'highlightit-line-share'
-							lineShareButton.setAttribute(
-								'aria-label',
-								`Copy link to line ${lineNumber}`
-							)
-							lineShareButton.innerHTML = cache.svgIcons.link
-							lineShareButton.dataset.lineNumber = lineNumber
-							lineShareButton.dataset.blockId = blockId
-
-							lineShareButton.addEventListener('click', async (e) => {
-								e.stopPropagation()
-
-								const currentBlockId =
-									container.getAttribute('data-original-id') || container.id
-								const lineNumber = e.currentTarget.dataset.lineNumber
-								const url = new URL(window.location.href)
-								url.hash = `${currentBlockId}_${lineNumber}`
-
-								const success = await polyfills.copyToClipboard(url.toString())
-
-								if (success) {
-									lineShareButton.classList.add('copied')
-									lineShareButton.innerHTML = cache.svgIcons.check
-
-									const containerElement = lineShareButton.closest(
-										'.highlightit-line-number-container'
-									)
-									if (containerElement) {
-										containerElement.classList.add('has-copied-button')
-										polyfills.updateHasClass(
-											containerElement,
-											'.highlightit-line-share.copied',
-											'has-copied-button',
-											true
-										)
-									}
-
-									setTimeout(() => {
-										lineShareButton.classList.remove('copied')
-										lineShareButton.innerHTML = cache.svgIcons.link
-
-										if (containerElement) {
-											containerElement.classList.remove('has-copied-button')
-											polyfills.updateHasClass(
-												containerElement,
-												'.highlightit-line-share.copied',
-												'has-copied-button',
-												false
-											)
-										}
-									}, 2000)
-								}
-							})
-
-							lineNumberContainer.appendChild(span)
-							lineNumberContainer.appendChild(lineShareButton)
-							fragment.appendChild(lineNumberContainer)
-						} else {
-							const span = document.createElement('span')
-							span.className = 'highlightit-line-number'
-							span.textContent = lineStart + i
-							fragment.appendChild(span)
-						}
-					}
-					oldLineNumbers.appendChild(fragment)
-
-					this.updateLineHeights(targetElement, oldLineNumbers)
-				} else if (oldLineNumbers) {
-					this.updateLineHeights(targetElement, oldLineNumbers)
+					this.updateLineNumbersForLiveUpdates(
+						oldLineNumbers,
+						lineCount,
+						oldLineCount,
+						lineStart,
+						withShare,
+						blockId,
+						container
+					)
 				} else {
 					this.addLineNumbers(targetElement, code)
 				}
@@ -924,6 +842,135 @@ class HighlightIt {
 		})
 
 		elementToWatch._highlightObserver = observer
+	}
+
+	/**
+	 * Intelligently update line numbers for live updates, preserving existing DOM elements
+	 * @param {HTMLElement} lineNumbersWrapper - The line numbers wrapper
+	 * @param {number} newLineCount - The new line count
+	 * @param {number} oldLineCount - The old line count
+	 * @param {number} startLine - The starting line number
+	 * @param {boolean} withShare - Whether share buttons should be included
+	 * @param {string} blockId - The block ID for share links
+	 * @param {HTMLElement} container - The container element
+	 */
+	static updateLineNumbersForLiveUpdates(
+		lineNumbersWrapper,
+		newLineCount,
+		oldLineCount,
+		startLine,
+		withShare,
+		blockId,
+		container
+	) {
+		if (newLineCount === oldLineCount) {
+			const lineNumbers = lineNumbersWrapper.querySelectorAll('.highlightit-line-number')
+			const lineShareButtons = lineNumbersWrapper.querySelectorAll('.highlightit-line-share')
+
+			for (let i = 0; i < newLineCount; i++) {
+				const lineNumber = startLine + i
+
+				if (lineNumbers[i]) {
+					lineNumbers[i].textContent = lineNumber
+				}
+
+				if (withShare && blockId && lineShareButtons[i]) {
+					lineShareButtons[i].dataset.lineNumber = lineNumber
+
+					if (lineShareButtons[i].dataset.blockId !== blockId) {
+						lineShareButtons[i].dataset.blockId = blockId
+
+						const oldClickListener = lineShareButtons[i]._clickListener
+						if (oldClickListener) {
+							lineShareButtons[i].removeEventListener('click', oldClickListener)
+						}
+
+						this.setupLineShareButtonHandler(lineShareButtons[i], container)
+					}
+				}
+			}
+			return
+		}
+
+		if (newLineCount > oldLineCount) {
+			const fragment = document.createDocumentFragment()
+
+			for (let i = oldLineCount; i < newLineCount; i++) {
+				const lineNumber = startLine + i
+				const lineNumberContainer = document.createElement('div')
+				lineNumberContainer.className = 'highlightit-line-number-container'
+
+				const span = document.createElement('span')
+				span.className = 'highlightit-line-number'
+				span.textContent = lineNumber
+
+				if (withShare && blockId) {
+					span.className += ' highlightit-line-number-shareable'
+
+					const lineShareButton = document.createElement('button')
+					lineShareButton.className = 'highlightit-line-share'
+					lineShareButton.setAttribute('aria-label', `Copy link to line ${lineNumber}`)
+					lineShareButton.innerHTML = cache.svgIcons.link
+					lineShareButton.dataset.lineNumber = lineNumber
+					lineShareButton.dataset.blockId = blockId
+
+					this.setupLineShareButtonHandler(lineShareButton, container)
+
+					lineNumberContainer.appendChild(span)
+					lineNumberContainer.appendChild(lineShareButton)
+				} else {
+					lineNumberContainer.appendChild(span)
+				}
+
+				fragment.appendChild(lineNumberContainer)
+			}
+
+			lineNumbersWrapper.appendChild(fragment)
+		} else if (newLineCount < oldLineCount) {
+			const allLineContainers = lineNumbersWrapper.querySelectorAll(
+				'.highlightit-line-number-container'
+			)
+			const lineNumbers = lineNumbersWrapper.querySelectorAll('.highlightit-line-number')
+
+			for (let i = newLineCount; i < oldLineCount; i++) {
+				if (allLineContainers[i]) {
+					lineNumbersWrapper.removeChild(allLineContainers[i])
+				} else if (lineNumbers[i]) {
+					lineNumbersWrapper.removeChild(lineNumbers[i])
+				}
+			}
+
+			for (let i = 0; i < newLineCount; i++) {
+				const lineNumber = startLine + i
+
+				if (allLineContainers[i]) {
+					const span = allLineContainers[i].querySelector('.highlightit-line-number')
+					if (span) {
+						span.textContent = lineNumber
+					}
+
+					if (withShare && blockId) {
+						const button = allLineContainers[i].querySelector('.highlightit-line-share')
+						if (button) {
+							button.dataset.lineNumber = lineNumber
+
+							if (button.dataset.blockId !== blockId) {
+								button.dataset.blockId = blockId
+
+								const oldClickListener = button._clickListener
+								if (oldClickListener) {
+									button.removeEventListener('click', oldClickListener)
+								}
+
+								this.setupLineShareButtonHandler(button, container)
+							}
+						}
+					}
+				} else if (lineNumbers[i]) {
+					lineNumbers[i].textContent = lineNumber
+				}
+			}
+		}
 	}
 
 	/**
@@ -1205,50 +1252,7 @@ class HighlightIt {
 				lineShareButton.dataset.lineNumber = lineNumber
 				lineShareButton.dataset.blockId = blockId
 
-				lineShareButton.addEventListener('click', async (e) => {
-					e.stopPropagation()
-
-					const currentBlockId =
-						container.getAttribute('data-original-id') || container.id
-					const lineNumber = e.currentTarget.dataset.lineNumber
-					const url = new URL(window.location.href)
-					url.hash = `${currentBlockId}_${lineNumber}`
-
-					const success = await polyfills.copyToClipboard(url.toString())
-
-					if (success) {
-						lineShareButton.classList.add('copied')
-						lineShareButton.innerHTML = cache.svgIcons.check
-
-						const containerElement = lineShareButton.closest(
-							'.highlightit-line-number-container'
-						)
-						if (containerElement) {
-							containerElement.classList.add('has-copied-button')
-							polyfills.updateHasClass(
-								containerElement,
-								'.highlightit-line-share.copied',
-								'has-copied-button',
-								true
-							)
-						}
-
-						setTimeout(() => {
-							lineShareButton.classList.remove('copied')
-							lineShareButton.innerHTML = cache.svgIcons.link
-
-							if (containerElement) {
-								containerElement.classList.remove('has-copied-button')
-								polyfills.updateHasClass(
-									containerElement,
-									'.highlightit-line-share.copied',
-									'has-copied-button',
-									false
-								)
-							}
-						}, 2000)
-					}
-				})
+				this.setupLineShareButtonHandler(lineShareButton, container)
 
 				lineNumberContainer.appendChild(span)
 				lineNumberContainer.appendChild(lineShareButton)
@@ -1263,47 +1267,6 @@ class HighlightIt {
 
 		polyfills.classList.add(preElement, 'highlightit-has-line-numbers')
 		preElement.insertBefore(lineNumbersWrapper, preElement.firstChild)
-
-		this.updateLineHeights(element, lineNumbersWrapper)
-
-		const resizeObserver = new polyfills.ResizeObserver(() => {
-			this.updateLineHeights(element, lineNumbersWrapper)
-		})
-
-		resizeObserver.observe(element)
-
-		element._lineNumbersResizeObserver = resizeObserver
-	}
-
-	/**
-	 * Update the line heights for line numbers to match the highlighted code
-	 * @param {HTMLElement} element - The code element
-	 * @param {HTMLElement} lineNumbersWrapper - The line numbers container
-	 * @private
-	 */
-	static updateLineHeights(element, lineNumbersWrapper) {
-		const codeHeight = element.offsetHeight
-		const lineNumberContainers = lineNumbersWrapper.querySelectorAll(
-			'.highlightit-line-number-container'
-		)
-		const lineCount =
-			lineNumberContainers.length ||
-			lineNumbersWrapper.querySelectorAll('.highlightit-line-number').length
-
-		if (lineCount === 0) return
-
-		const lineHeight = codeHeight / lineCount
-
-		if (lineNumberContainers.length > 0) {
-			lineNumberContainers.forEach((container) => {
-				container.style.height = `${lineHeight}px`
-			})
-		} else {
-			const lineNumbers = lineNumbersWrapper.querySelectorAll('.highlightit-line-number')
-			lineNumbers.forEach((lineNumber) => {
-				lineNumber.style.height = `${lineHeight}px`
-			})
-		}
 	}
 
 	/**
@@ -1351,97 +1314,134 @@ class HighlightIt {
 					10
 				)
 
-				if (oldLineNumbers && lineCount !== oldLineCount) {
-					while (oldLineNumbers.firstChild) {
-						oldLineNumbers.removeChild(oldLineNumbers.firstChild)
+				const currentBlockId = container.getAttribute('data-original-id') || container.id
+				const withShare =
+					container.dataset.withShare !== undefined ||
+					element.dataset.withShare !== undefined
+
+				if (oldLineNumbers) {
+					if (lineCount !== oldLineCount) {
+						if (lineCount > oldLineCount) {
+							const fragment = document.createDocumentFragment()
+
+							for (let i = oldLineCount; i < lineCount; i++) {
+								const lineNumber = lineStart + i
+								const lineNumberContainer = document.createElement('div')
+								lineNumberContainer.className = 'highlightit-line-number-container'
+
+								const span = document.createElement('span')
+								span.className = 'highlightit-line-number'
+								span.textContent = lineNumber
+
+								if (withShare && currentBlockId) {
+									span.className += ' highlightit-line-number-shareable'
+
+									const lineShareButton = document.createElement('button')
+									lineShareButton.className = 'highlightit-line-share'
+									lineShareButton.setAttribute(
+										'aria-label',
+										`Copy link to line ${lineNumber}`
+									)
+									lineShareButton.innerHTML = cache.svgIcons.link
+									lineShareButton.dataset.lineNumber = lineNumber
+									lineShareButton.dataset.blockId = currentBlockId
+
+									this.setupLineShareButtonHandler(lineShareButton, container)
+
+									lineNumberContainer.appendChild(span)
+									lineNumberContainer.appendChild(lineShareButton)
+								} else {
+									lineNumberContainer.appendChild(span)
+								}
+
+								fragment.appendChild(lineNumberContainer)
+							}
+
+							oldLineNumbers.appendChild(fragment)
+						} else if (lineCount < oldLineCount) {
+							const allLineContainers = oldLineNumbers.querySelectorAll(
+								'.highlightit-line-number-container'
+							)
+							const lineNumbers = oldLineNumbers.querySelectorAll(
+								'.highlightit-line-number'
+							)
+
+							for (let i = lineCount; i < oldLineCount; i++) {
+								if (allLineContainers[i]) {
+									oldLineNumbers.removeChild(allLineContainers[i])
+								} else if (lineNumbers[i]) {
+									oldLineNumbers.removeChild(lineNumbers[i])
+								}
+							}
+						}
 					}
 
-					const withShare =
-						container.dataset.withShare !== undefined ||
-						element.dataset.withShare !== undefined
+					const allLineContainers = oldLineNumbers.querySelectorAll(
+						'.highlightit-line-number-container'
+					)
+					const lineNumbers = oldLineNumbers.querySelectorAll('.highlightit-line-number')
+					const lineShareButtons =
+						oldLineNumbers.querySelectorAll('.highlightit-line-share')
 
-					const blockId = container.getAttribute('data-original-id') || container.id || ''
-
-					const fragment = document.createDocumentFragment()
 					for (let i = 0; i < lineCount; i++) {
-						if (withShare && blockId) {
-							const lineNumberContainer = document.createElement('div')
-							lineNumberContainer.className = 'highlightit-line-number-container'
+						const lineNumber = lineStart + i
 
-							const span = document.createElement('span')
-							span.className =
-								'highlightit-line-number highlightit-line-number-shareable'
-							span.textContent = lineStart + i
-
-							const lineNumber = lineStart + i
-							const lineShareButton = document.createElement('button')
-							lineShareButton.className = 'highlightit-line-share'
-							lineShareButton.setAttribute(
-								'aria-label',
-								`Copy link to line ${lineNumber}`
+						if (allLineContainers[i]) {
+							const span = allLineContainers[i].querySelector(
+								'.highlightit-line-number'
 							)
-							lineShareButton.innerHTML = cache.svgIcons.link
-							lineShareButton.dataset.lineNumber = lineNumber
-							lineShareButton.dataset.blockId = blockId
+							if (span) {
+								span.textContent = lineNumber
+							}
 
-							lineShareButton.addEventListener('click', async (e) => {
-								e.stopPropagation()
-
-								const currentBlockId =
-									container.getAttribute('data-original-id') || container.id
-								const lineNumber = e.currentTarget.dataset.lineNumber
-								const url = new URL(window.location.href)
-								url.hash = `${currentBlockId}_${lineNumber}`
-
-								const success = await polyfills.copyToClipboard(url.toString())
-
-								if (success) {
-									lineShareButton.classList.add('copied')
-									lineShareButton.innerHTML = cache.svgIcons.check
-
-									const containerElement = lineShareButton.closest(
-										'.highlightit-line-number-container'
+							if (withShare && currentBlockId) {
+								const button =
+									allLineContainers[i].querySelector('.highlightit-line-share')
+								if (button) {
+									button.dataset.lineNumber = lineNumber
+									button.setAttribute(
+										'aria-label',
+										`Copy link to line ${lineNumber}`
 									)
-									if (containerElement) {
-										containerElement.classList.add('has-copied-button')
-										polyfills.updateHasClass(
-											containerElement,
-											'.highlightit-line-share.copied',
-											'has-copied-button',
-											true
+
+									if (button.dataset.blockId !== currentBlockId) {
+										button.dataset.blockId = currentBlockId
+
+										const oldClickListener = button._clickListener
+										if (oldClickListener) {
+											button.removeEventListener('click', oldClickListener)
+										}
+
+										this.setupLineShareButtonHandler(button, container)
+									}
+								}
+							}
+						} else if (lineNumbers[i]) {
+							lineNumbers[i].textContent = lineNumber
+
+							if (withShare && currentBlockId && lineShareButtons[i]) {
+								lineShareButtons[i].dataset.lineNumber = lineNumber
+								lineShareButtons[i].setAttribute(
+									'aria-label',
+									`Copy link to line ${lineNumber}`
+								)
+
+								if (lineShareButtons[i].dataset.blockId !== currentBlockId) {
+									lineShareButtons[i].dataset.blockId = currentBlockId
+
+									const oldClickListener = lineShareButtons[i]._clickListener
+									if (oldClickListener) {
+										lineShareButtons[i].removeEventListener(
+											'click',
+											oldClickListener
 										)
 									}
 
-									setTimeout(() => {
-										lineShareButton.classList.remove('copied')
-										lineShareButton.innerHTML = cache.svgIcons.link
-
-										if (containerElement) {
-											containerElement.classList.remove('has-copied-button')
-											polyfills.updateHasClass(
-												containerElement,
-												'.highlightit-line-share.copied',
-												'has-copied-button',
-												false
-											)
-										}
-									}, 2000)
+									this.setupLineShareButtonHandler(lineShareButtons[i], container)
 								}
-							})
-
-							lineNumberContainer.appendChild(span)
-							lineNumberContainer.appendChild(lineShareButton)
-							fragment.appendChild(lineNumberContainer)
-						} else {
-							const span = document.createElement('span')
-							span.className = 'highlightit-line-number'
-							span.textContent = lineStart + i
-							fragment.appendChild(span)
+							}
 						}
 					}
-					oldLineNumbers.appendChild(fragment)
-
-					this.updateLineHeights(element, oldLineNumbers)
 				} else {
 					this.addLineNumbers(element, cleanedCode)
 				}
@@ -1586,6 +1586,58 @@ class HighlightIt {
 			console.warn(`HighlightIt: Error highlighting with language ${language}`, error)
 			element.innerHTML = this.escapeHtml(cleanedCode)
 		}
+	}
+
+	/**
+	 * Setup a click handler for line share buttons
+	 * @param {HTMLElement} button - The line share button
+	 * @param {HTMLElement} container - The container element
+	 */
+	static setupLineShareButtonHandler(button, container) {
+		const clickListener = async (e) => {
+			e.stopPropagation()
+
+			const currentBlockId = container.getAttribute('data-original-id') || container.id
+			const lineNumber = button.dataset.lineNumber
+			const url = new URL(window.location.href)
+			url.hash = `${currentBlockId}_${lineNumber}`
+
+			const success = await polyfills.copyToClipboard(url.toString())
+
+			if (success) {
+				button.classList.add('copied')
+				button.innerHTML = cache.svgIcons.check
+
+				const containerElement = button.closest('.highlightit-line-number-container')
+				if (containerElement) {
+					containerElement.classList.add('has-copied-button')
+					polyfills.updateHasClass(
+						containerElement,
+						'.highlightit-line-share.copied',
+						'has-copied-button',
+						true
+					)
+				}
+
+				setTimeout(() => {
+					button.classList.remove('copied')
+					button.innerHTML = cache.svgIcons.link
+
+					if (containerElement) {
+						containerElement.classList.remove('has-copied-button')
+						polyfills.updateHasClass(
+							containerElement,
+							'.highlightit-line-share.copied',
+							'has-copied-button',
+							false
+						)
+					}
+				}, 2000)
+			}
+		}
+
+		button._clickListener = clickListener
+		button.addEventListener('click', clickListener)
 	}
 
 	static findOriginalElement(element, container) {
