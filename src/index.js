@@ -123,34 +123,27 @@ class HighlightIt {
 	static async createShareButton(code, container) {
 		const shareButton = document.createElement('button')
 		shareButton.className = 'highlightit-button highlightit-share'
-		shareButton.setAttribute('aria-label', 'Share code')
+		shareButton.setAttribute('aria-label', 'Copy link to this code')
 		shareButton.innerHTML = cache.svgIcons.share
 
-		let blockId = ''
 		const originalId = container.getAttribute('data-original-id')
-		
-		if (originalId) {
-			blockId = originalId
-		} else {
-			if (container.id) {
-				blockId = container.id
-			} else {
-				blockId = await this.generateHash(code)
-				container.id = blockId
-			}
+		const containerId = container.id
+		let blockId = originalId || containerId
+
+		if (!blockId) {
+			blockId = await this.generateHash(code)
+			container.id = blockId
 		}
 
 		const clickListener = async () => {
-			const targetId = container.getAttribute('data-original-id') || container.id
-			
+			const currentId = container.getAttribute('data-original-id') || container.id
 			const url = new URL(window.location.href)
-			url.hash = targetId || blockId
+			url.hash = currentId
 
 			const success = await polyfills.copyToClipboard(url.toString())
 
 			if (success) {
 				shareButton.classList.add('copied')
-
 				shareButton.innerHTML = cache.svgIcons.check
 
 				setTimeout(() => {
@@ -160,9 +153,9 @@ class HighlightIt {
 			}
 		}
 
+		shareButton.addEventListener('click', clickListener)
 		shareButton.onclickBackup = clickListener
 		shareButton._currentBlockId = blockId
-		shareButton.addEventListener('click', clickListener)
 
 		return shareButton
 	}
@@ -177,8 +170,10 @@ class HighlightIt {
 		const originalId = container.getAttribute('data-original-id')
 
 		if (originalId) {
-			const originalElement = document.querySelector(`.highlightit-original[id="${originalId}"]`)
-			
+			const originalElement = document.querySelector(
+				`.highlightit-original[id="${originalId}"]`
+			)
+
 			if (originalElement) {
 				if (originalElement.id !== originalId) {
 					originalElement.id = originalId
@@ -187,14 +182,17 @@ class HighlightIt {
 				if (container.id === originalId) {
 					container.id = ''
 				}
+
 				container.setAttribute('data-original-id', originalId)
 			} else {
 				if (!container.id || container.id !== originalId) {
 					container.id = originalId
 				}
 			}
-			
+
 			return originalId
+		} else if (container.id) {
+			return container.id
 		} else {
 			const newId = await this.generateHash(newCode)
 			container.id = newId
@@ -207,37 +205,33 @@ class HighlightIt {
 	 * @param {number} [attempts=0] - Number of attempts made so far
 	 */
 	static scrollToAnchor(attempts = 0) {
-		const hash = window.location.hash.substring(1)
-		if (!hash) return
+		const fullHash = window.location.hash.substring(1)
+		if (!fullHash) return
+
+		const hashParts = fullHash.split('_')
+		const hash = hashParts[0]
+		const lineNumber = hashParts.length > 1 ? parseInt(hashParts[1], 10) : null
 
 		const target = document.getElementById(hash)
 		if (target) {
 			if (target.classList.contains('highlightit-original')) {
 				const uniqueId = target.getAttribute('data-highlightit-id')
 				let visibleTarget = null
-				
+
 				if (uniqueId) {
 					visibleTarget = document.querySelector(`[data-linked-original="${uniqueId}"]`)
 				}
-				
+
 				if (visibleTarget) {
 					setTimeout(() => {
-						visibleTarget.scrollIntoView({ behavior: 'smooth', block: 'start' })
-						visibleTarget.classList.add('highlightit-anchor-highlight')
-						setTimeout(() => {
-							visibleTarget.classList.remove('highlightit-anchor-highlight')
-						}, 2000)
+						this.scrollToHighlightedElement(visibleTarget, lineNumber)
 					}, 100)
 					return
 				}
 			}
-			
+
 			setTimeout(() => {
-				target.scrollIntoView({ behavior: 'smooth', block: 'start' })
-				target.classList.add('highlightit-anchor-highlight')
-				setTimeout(() => {
-					target.classList.remove('highlightit-anchor-highlight')
-				}, 2000)
+				this.scrollToHighlightedElement(target, lineNumber)
 			}, 100)
 		} else if (attempts < 10) {
 			setTimeout(
@@ -250,16 +244,66 @@ class HighlightIt {
 	}
 
 	/**
-	 * Initialize the share functionality
+	 * Scroll to a highlighted element and optionally to a specific line
+	 * @param {HTMLElement} element - The element to scroll to
+	 * @param {number|null} lineNumber - The line number to highlight, if any
+	 * @private
 	 */
-	static initSharing() {
-		setTimeout(() => {
-			this.scrollToAnchor()
-		}, 100)
+	static scrollToHighlightedElement(element, lineNumber) {
+		if (lineNumber !== null) {
+			const container = element.closest('.highlightit-container')
+			if (container) {
+				const lineNumbers = container.querySelectorAll('.highlightit-line-number')
+				for (let i = 0; i < lineNumbers.length; i++) {
+					const ln = lineNumbers[i]
+					if (ln.textContent.trim() === String(lineNumber)) {
+						const lineContainer = ln.closest('.highlightit-line-number-container') || ln
 
-		window.addEventListener('hashchange', () => {
-			this.scrollToAnchor()
-		})
+						this.createFullWidthHighlight(lineContainer, container)
+
+						lineContainer.scrollIntoView({ behavior: 'smooth', block: 'center' })
+
+						return
+					}
+				}
+			}
+		}
+
+		element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+		element.classList.add('highlightit-anchor-highlight')
+		setTimeout(() => {
+			element.classList.remove('highlightit-anchor-highlight')
+		}, 2000)
+	}
+
+	/**
+	 * Create a full-width highlight that spans both line numbers and code
+	 * @param {HTMLElement} lineContainer - The line container element
+	 * @param {HTMLElement} codeContainer - The code container element
+	 * @private
+	 */
+	static createFullWidthHighlight(lineContainer, codeContainer) {
+		lineContainer.classList.add('highlightit-line-highlight')
+
+		const rect = polyfills.getBoundingClientRect(lineContainer)
+		const containerRect = polyfills.getBoundingClientRect(codeContainer)
+
+		const overlay = document.createElement('div')
+		overlay.className = 'highlightit-line-highlight-overlay'
+
+		overlay.style.top = `${rect.top - containerRect.top}px`
+		overlay.style.height = `${rect.height}px`
+		overlay.style.width = '100%'
+		overlay.style.left = '0'
+
+		codeContainer.appendChild(overlay)
+
+		setTimeout(() => {
+			lineContainer.classList.remove('highlightit-line-highlight')
+			if (overlay && overlay.parentNode) {
+				overlay.parentNode.removeChild(overlay)
+			}
+		}, 2500)
 	}
 
 	/**
@@ -388,6 +432,10 @@ class HighlightIt {
 				container.className = 'highlight-it highlightit-container'
 			} else {
 				container.className = element.className
+			}
+
+			if (element.id && !withLiveUpdates) {
+				container.id = element.id
 			}
 
 			preElement = document.createElement('pre')
@@ -549,13 +597,14 @@ class HighlightIt {
 		}
 
 		if (withShare && !withLiveUpdates) {
-			(async () => {
-				const originalId = container.getAttribute('data-original-id') || container.id
-				if (!originalId) {
-					const blockId = await this.generateHash(code)
+			const originalId = container.getAttribute('data-original-id')
+			const hasId = originalId || container.id
+
+			if (!hasId) {
+				this.generateHash(code).then((blockId) => {
 					container.id = blockId
-				}
-			})()
+				})
+			}
 		}
 
 		if ((showLanguage || shouldAddCopyButton || withShare) && addHeader && !noHeader) {
@@ -750,36 +799,110 @@ class HighlightIt {
 				const preElement = targetElement.parentElement
 				const oldLineNumbers = preElement.querySelector('.highlightit-line-numbers')
 				const oldLines = oldLineNumbers
-					? oldLineNumbers.querySelectorAll('.highlightit-line-number')
+					? oldLineNumbers.querySelectorAll(
+							'.highlightit-line-number-container, .highlightit-line-number'
+						)
 					: null
 
-				if (oldLineNumbers) {
-					const lineCount = code.split('\n').length
-					const oldLineCount = oldLines ? oldLines.length : 0
+				const lineCount = code.split('\n').length
+				const oldLineCount = oldLines ? oldLines.length : 0
+				let lineStart = parseInt(
+					targetElement.dataset.lineStart || preElement.dataset.lineStart || 1,
+					10
+				)
 
-					if (lineCount !== oldLineCount) {
-						const startLine = parseInt(
-							targetElement.dataset.lineStart || preElement.dataset.lineStart || 1,
-							10
-						)
+				if (oldLineNumbers && lineCount !== oldLineCount) {
+					while (oldLineNumbers.firstChild) {
+						oldLineNumbers.removeChild(oldLineNumbers.firstChild)
+					}
 
-						while (oldLineNumbers.firstChild) {
-							oldLineNumbers.removeChild(oldLineNumbers.firstChild)
-						}
+					const withShare =
+						container.dataset.withShare !== undefined ||
+						element.dataset.withShare !== undefined
+					const blockId = container.getAttribute('data-original-id') || container.id
 
-						const fragment = document.createDocumentFragment()
-						for (let i = 0; i < lineCount; i++) {
+					const fragment = document.createDocumentFragment()
+					for (let i = 0; i < lineCount; i++) {
+						if (withShare && blockId) {
+							const lineNumberContainer = document.createElement('div')
+							lineNumberContainer.className = 'highlightit-line-number-container'
+
+							const span = document.createElement('span')
+							span.className =
+								'highlightit-line-number highlightit-line-number-shareable'
+							span.textContent = lineStart + i
+
+							const lineNumber = lineStart + i
+							const lineShareButton = document.createElement('button')
+							lineShareButton.className = 'highlightit-line-share'
+							lineShareButton.setAttribute(
+								'aria-label',
+								`Copy link to line ${lineNumber}`
+							)
+							lineShareButton.innerHTML = cache.svgIcons.link
+							lineShareButton.dataset.lineNumber = lineNumber
+							lineShareButton.dataset.blockId = blockId
+
+							lineShareButton.addEventListener('click', async (e) => {
+								e.stopPropagation()
+
+								const currentBlockId =
+									container.getAttribute('data-original-id') || container.id
+								const lineNumber = e.currentTarget.dataset.lineNumber
+								const url = new URL(window.location.href)
+								url.hash = `${currentBlockId}_${lineNumber}`
+
+								const success = await polyfills.copyToClipboard(url.toString())
+
+								if (success) {
+									lineShareButton.classList.add('copied')
+									lineShareButton.innerHTML = cache.svgIcons.check
+
+									const containerElement = lineShareButton.closest(
+										'.highlightit-line-number-container'
+									)
+									if (containerElement) {
+										containerElement.classList.add('has-copied-button')
+										polyfills.updateHasClass(
+											containerElement,
+											'.highlightit-line-share.copied',
+											'has-copied-button',
+											true
+										)
+									}
+
+									setTimeout(() => {
+										lineShareButton.classList.remove('copied')
+										lineShareButton.innerHTML = cache.svgIcons.link
+
+										if (containerElement) {
+											containerElement.classList.remove('has-copied-button')
+											polyfills.updateHasClass(
+												containerElement,
+												'.highlightit-line-share.copied',
+												'has-copied-button',
+												false
+											)
+										}
+									}, 2000)
+								}
+							})
+
+							lineNumberContainer.appendChild(span)
+							lineNumberContainer.appendChild(lineShareButton)
+							fragment.appendChild(lineNumberContainer)
+						} else {
 							const span = document.createElement('span')
 							span.className = 'highlightit-line-number'
-							span.textContent = startLine + i
+							span.textContent = lineStart + i
 							fragment.appendChild(span)
 						}
-						oldLineNumbers.appendChild(fragment)
-
-						this.updateLineHeights(targetElement, oldLineNumbers)
-					} else {
-						this.updateLineHeights(targetElement, oldLineNumbers)
 					}
+					oldLineNumbers.appendChild(fragment)
+
+					this.updateLineHeights(targetElement, oldLineNumbers)
+				} else if (oldLineNumbers) {
+					this.updateLineHeights(targetElement, oldLineNumbers)
 				} else {
 					this.addLineNumbers(targetElement, code)
 				}
@@ -836,6 +959,16 @@ class HighlightIt {
 			container.setAttribute('data-original-id', preElement.getAttribute('data-original-id'))
 		}
 
+		if (!container.id) {
+			if (preElement.id) {
+				container.id = preElement.id
+				preElement.removeAttribute('id')
+			} else if (element.id) {
+				container.id = element.id
+				element.removeAttribute('id')
+			}
+		}
+
 		preElement.parentNode.insertBefore(container, preElement)
 		container.appendChild(preElement)
 
@@ -880,7 +1013,7 @@ class HighlightIt {
 			const copyButton = this.createCopyButton(code)
 			buttonContainer.appendChild(copyButton)
 		}
-		
+
 		if (addShareButton) {
 			this.createShareButton(code, container).then((shareButton) => {
 				buttonContainer.appendChild(shareButton)
@@ -915,10 +1048,8 @@ class HighlightIt {
 
 				setTimeout(() => {
 					polyfills.classList.remove(copyButton, 'copied')
-					copyButton.querySelector('.highlightit-copy-icon').style.display =
-						'block'
-					copyButton.querySelector('.highlightit-check-icon').style.display =
-						'none'
+					copyButton.querySelector('.highlightit-copy-icon').style.display = 'block'
+					copyButton.querySelector('.highlightit-check-icon').style.display = 'none'
 				}, 2000)
 			} else {
 				console.warn('Failed to copy code')
@@ -952,16 +1083,16 @@ class HighlightIt {
 		}
 
 		buttonsContainer.appendChild(copyButton)
-		
+
 		if (withShare && container) {
-			(async () => {
+			;(async () => {
 				const shareButton = await this.createShareButton(code, container)
 				shareButton.className = 'highlightit-button highlightit-share highlightit-floating'
-				
+
 				if (this.isTouchDevice) {
 					shareButton.style.opacity = '1'
 				}
-				
+
 				buttonsContainer.appendChild(shareButton)
 			})()
 		}
@@ -1011,6 +1142,11 @@ class HighlightIt {
 		const preElement = element.parentElement
 		if (preElement.querySelector('.highlightit-line-numbers')) return
 
+		const container = preElement.closest('.highlightit-container')
+		const withShare =
+			container &&
+			(container.dataset.withShare !== undefined || element.dataset.withShare !== undefined)
+
 		const lines = code.trim().split('\n')
 		const lineCount = lines.length
 
@@ -1023,12 +1159,106 @@ class HighlightIt {
 		)
 
 		const fragment = document.createDocumentFragment()
+
+		let blockId = ''
+		if (withShare) {
+			blockId = container.getAttribute('data-original-id') || container.id
+
+			if (!blockId) {
+				blockId = 'temp-' + Math.random().toString(36).substr(2, 9)
+				container.id = blockId
+
+				this.generateHash(code).then((hash) => {
+					if (container.id === blockId) {
+						container.id = hash
+					}
+
+					const lineNumbers = lineNumbersWrapper.querySelectorAll(
+						'.highlightit-line-number'
+					)
+					lineNumbers.forEach((lineNumber) => {
+						const lineShareBtn = lineNumber.querySelector('.highlightit-line-share')
+						if (lineShareBtn && lineShareBtn.dataset.blockId === blockId) {
+							lineShareBtn.dataset.blockId = hash
+						}
+					})
+				})
+			}
+		}
+
 		for (let i = 0; i < lineCount; i++) {
+			const lineNumberContainer = document.createElement('div')
+			lineNumberContainer.className = 'highlightit-line-number-container'
+
 			const span = document.createElement('span')
 			span.className = 'highlightit-line-number'
 			span.textContent = startLine + i
-			fragment.appendChild(span)
+
+			if (withShare && blockId) {
+				const lineNumber = startLine + i
+				span.className += ' highlightit-line-number-shareable'
+
+				const lineShareButton = document.createElement('button')
+				lineShareButton.className = 'highlightit-line-share'
+				lineShareButton.setAttribute('aria-label', `Copy link to line ${lineNumber}`)
+				lineShareButton.innerHTML = cache.svgIcons.link
+				lineShareButton.dataset.lineNumber = lineNumber
+				lineShareButton.dataset.blockId = blockId
+
+				lineShareButton.addEventListener('click', async (e) => {
+					e.stopPropagation()
+
+					const currentBlockId =
+						container.getAttribute('data-original-id') || container.id
+					const lineNumber = e.currentTarget.dataset.lineNumber
+					const url = new URL(window.location.href)
+					url.hash = `${currentBlockId}_${lineNumber}`
+
+					const success = await polyfills.copyToClipboard(url.toString())
+
+					if (success) {
+						lineShareButton.classList.add('copied')
+						lineShareButton.innerHTML = cache.svgIcons.check
+
+						const containerElement = lineShareButton.closest(
+							'.highlightit-line-number-container'
+						)
+						if (containerElement) {
+							containerElement.classList.add('has-copied-button')
+							polyfills.updateHasClass(
+								containerElement,
+								'.highlightit-line-share.copied',
+								'has-copied-button',
+								true
+							)
+						}
+
+						setTimeout(() => {
+							lineShareButton.classList.remove('copied')
+							lineShareButton.innerHTML = cache.svgIcons.link
+
+							if (containerElement) {
+								containerElement.classList.remove('has-copied-button')
+								polyfills.updateHasClass(
+									containerElement,
+									'.highlightit-line-share.copied',
+									'has-copied-button',
+									false
+								)
+							}
+						}, 2000)
+					}
+				})
+
+				lineNumberContainer.appendChild(span)
+				lineNumberContainer.appendChild(lineShareButton)
+			} else {
+				lineNumberContainer.appendChild(span)
+			}
+
+			fragment.appendChild(lineNumberContainer)
 		}
+
 		lineNumbersWrapper.appendChild(fragment)
 
 		polyfills.classList.add(preElement, 'highlightit-has-line-numbers')
@@ -1053,16 +1283,27 @@ class HighlightIt {
 	 */
 	static updateLineHeights(element, lineNumbersWrapper) {
 		const codeHeight = element.offsetHeight
-		const lineNumbers = lineNumbersWrapper.querySelectorAll('.highlightit-line-number')
-		const lineCount = lineNumbers.length
+		const lineNumberContainers = lineNumbersWrapper.querySelectorAll(
+			'.highlightit-line-number-container'
+		)
+		const lineCount =
+			lineNumberContainers.length ||
+			lineNumbersWrapper.querySelectorAll('.highlightit-line-number').length
 
 		if (lineCount === 0) return
 
 		const lineHeight = codeHeight / lineCount
 
-		lineNumbers.forEach((lineNumber) => {
-			lineNumber.style.height = `${lineHeight}px`
-		})
+		if (lineNumberContainers.length > 0) {
+			lineNumberContainers.forEach((container) => {
+				container.style.height = `${lineHeight}px`
+			})
+		} else {
+			const lineNumbers = lineNumbersWrapper.querySelectorAll('.highlightit-line-number')
+			lineNumbers.forEach((lineNumber) => {
+				lineNumber.style.height = `${lineHeight}px`
+			})
+		}
 	}
 
 	/**
@@ -1097,7 +1338,9 @@ class HighlightIt {
 			if (withLines) {
 				const oldLineNumbers = container.querySelector('.highlightit-line-numbers')
 				const oldLines = oldLineNumbers
-					? oldLineNumbers.querySelectorAll('.highlightit-line-number')
+					? oldLineNumbers.querySelectorAll(
+							'.highlightit-line-number-container, .highlightit-line-number'
+						)
 					: null
 
 				const lineCount = cleanedCode.split('\n').length
@@ -1113,12 +1356,88 @@ class HighlightIt {
 						oldLineNumbers.removeChild(oldLineNumbers.firstChild)
 					}
 
+					const withShare =
+						container.dataset.withShare !== undefined ||
+						element.dataset.withShare !== undefined
+
+					const blockId = container.getAttribute('data-original-id') || container.id || ''
+
 					const fragment = document.createDocumentFragment()
 					for (let i = 0; i < lineCount; i++) {
-						const span = document.createElement('span')
-						span.className = 'highlightit-line-number'
-						span.textContent = lineStart + i
-						fragment.appendChild(span)
+						if (withShare && blockId) {
+							const lineNumberContainer = document.createElement('div')
+							lineNumberContainer.className = 'highlightit-line-number-container'
+
+							const span = document.createElement('span')
+							span.className =
+								'highlightit-line-number highlightit-line-number-shareable'
+							span.textContent = lineStart + i
+
+							const lineNumber = lineStart + i
+							const lineShareButton = document.createElement('button')
+							lineShareButton.className = 'highlightit-line-share'
+							lineShareButton.setAttribute(
+								'aria-label',
+								`Copy link to line ${lineNumber}`
+							)
+							lineShareButton.innerHTML = cache.svgIcons.link
+							lineShareButton.dataset.lineNumber = lineNumber
+							lineShareButton.dataset.blockId = blockId
+
+							lineShareButton.addEventListener('click', async (e) => {
+								e.stopPropagation()
+
+								const currentBlockId =
+									container.getAttribute('data-original-id') || container.id
+								const lineNumber = e.currentTarget.dataset.lineNumber
+								const url = new URL(window.location.href)
+								url.hash = `${currentBlockId}_${lineNumber}`
+
+								const success = await polyfills.copyToClipboard(url.toString())
+
+								if (success) {
+									lineShareButton.classList.add('copied')
+									lineShareButton.innerHTML = cache.svgIcons.check
+
+									const containerElement = lineShareButton.closest(
+										'.highlightit-line-number-container'
+									)
+									if (containerElement) {
+										containerElement.classList.add('has-copied-button')
+										polyfills.updateHasClass(
+											containerElement,
+											'.highlightit-line-share.copied',
+											'has-copied-button',
+											true
+										)
+									}
+
+									setTimeout(() => {
+										lineShareButton.classList.remove('copied')
+										lineShareButton.innerHTML = cache.svgIcons.link
+
+										if (containerElement) {
+											containerElement.classList.remove('has-copied-button')
+											polyfills.updateHasClass(
+												containerElement,
+												'.highlightit-line-share.copied',
+												'has-copied-button',
+												false
+											)
+										}
+									}, 2000)
+								}
+							})
+
+							lineNumberContainer.appendChild(span)
+							lineNumberContainer.appendChild(lineShareButton)
+							fragment.appendChild(lineNumberContainer)
+						} else {
+							const span = document.createElement('span')
+							span.className = 'highlightit-line-number'
+							span.textContent = lineStart + i
+							fragment.appendChild(span)
+						}
 					}
 					oldLineNumbers.appendChild(fragment)
 
@@ -1171,43 +1490,73 @@ class HighlightIt {
 			const shareButtons = container.querySelectorAll('.highlightit-share')
 			shareButtons.forEach(async (shareButton) => {
 				const originalId = container.getAttribute('data-original-id')
-				
+
 				if (originalId) {
 					if (shareButton._currentBlockId !== originalId) {
 						shareButton._currentBlockId = originalId
 					}
 					return
 				}
-				
+
+				if (container.id) {
+					if (shareButton._currentBlockId !== container.id) {
+						const clickListener = shareButton.onclickBackup || shareButton.onclick
+
+						if (clickListener) {
+							shareButton.removeEventListener('click', clickListener)
+						}
+
+						const newClickListener = async () => {
+							const url = new URL(window.location.href)
+							url.hash = container.id
+
+							const success = await polyfills.copyToClipboard(url.toString())
+
+							if (success) {
+								shareButton.classList.add('copied')
+								shareButton.innerHTML = cache.svgIcons.check
+
+								setTimeout(() => {
+									shareButton.classList.remove('copied')
+									shareButton.innerHTML = cache.svgIcons.share
+								}, 2000)
+							}
+						}
+
+						shareButton.onclickBackup = newClickListener
+						shareButton._currentBlockId = container.id
+						shareButton.addEventListener('click', newClickListener)
+					}
+					return
+				}
+
 				const blockId = await this.generateHash(cleanedCode)
 				container.id = blockId
-				
+
 				if (shareButton._currentBlockId !== blockId) {
 					const clickListener = shareButton.onclickBackup || shareButton.onclick
-					
+
 					if (clickListener) {
 						shareButton.removeEventListener('click', clickListener)
 					}
-					
+
 					const newClickListener = async () => {
 						const url = new URL(window.location.href)
 						url.hash = blockId
-						
+
 						const success = await polyfills.copyToClipboard(url.toString())
-						
+
 						if (success) {
 							shareButton.classList.add('copied')
-							
-							const originalIcon = shareButton.innerHTML
 							shareButton.innerHTML = cache.svgIcons.check
-							
+
 							setTimeout(() => {
 								shareButton.classList.remove('copied')
-								shareButton.innerHTML = originalIcon
+								shareButton.innerHTML = cache.svgIcons.share
 							}, 2000)
 						}
 					}
-					
+
 					shareButton.onclickBackup = newClickListener
 					shareButton._currentBlockId = blockId
 					shareButton.addEventListener('click', newClickListener)
@@ -1261,6 +1610,19 @@ class HighlightIt {
 			element.parentElement?.getAttribute('data-original-id') ||
 			container?.getAttribute('data-original-id')
 		return originalId ? document.getElementById(originalId) : null
+	}
+
+	/**
+	 * Initialize the share functionality
+	 */
+	static initSharing() {
+		setTimeout(() => {
+			this.scrollToAnchor()
+		}, 100)
+
+		window.addEventListener('hashchange', () => {
+			this.scrollToAnchor()
+		})
 	}
 }
 

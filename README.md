@@ -29,8 +29,8 @@ Add highlight-it using this script:
 
 ```html
 <script
-	src="https://cdn.jsdelivr.net/npm/highlight-it@0.2.0/dist/highlight-it-min.js"
-	integrity="sha512-6pvTHR2UTZ9gzyZx3X2utb/WDE4YUUCveoLLEUauJcPJd8K194EUeRCxKLZtU/spTG/o39JmPivMqysEwI0t1Q=="
+	src="https://cdn.jsdelivr.net/npm/highlight-it@0.2.1/dist/highlight-it-min.js"
+	integrity="sha512-mMbzWygEY/WtK1xxOiLzxdz2CXQcm6cb1SWkW32zXqwejAqviumtBFg9s/2lJTLa+1wZKLr/JMSNhc170k2tnw=="
 	crossorigin="anonymous"
 ></script>
 <script>

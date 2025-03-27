@@ -155,6 +155,11 @@ declare class HighlightIt {
 	 * @param code - The code to generate hash from if no id exists
 	 * @param container - The container element (to extract id)
 	 * @returns The share button element
+	 *
+	 * The ID priority is:
+	 * 1. data-original-id attribute on container
+	 * 2. Existing container.id
+	 * 3. Generated hash from code content
 	 */
 	static createShareButton(code: string, container: HTMLElement): Promise<HTMLElement>
 
@@ -163,6 +168,15 @@ declare class HighlightIt {
 	 * @param container - The container element
 	 * @param newCode - The new code content
 	 * @returns The updated block ID
+	 *
+	 * The ID priority is:
+	 * 1. data-original-id attribute
+	 * 2. Existing container.id
+	 * 3. Generated hash from newCode
+	 *
+	 * Note: When using data-with-reload, the original ID is preserved
+	 * on the hidden element, and the visible element uses data-original-id
+	 * to reference it without duplicating the ID attribute.
 	 */
 	static updateBlockId(container: HTMLElement, newCode: string): Promise<string>
 
@@ -171,6 +185,25 @@ declare class HighlightIt {
 	 * @param attempts - Number of attempts made so far
 	 */
 	static scrollToAnchor(attempts?: number): void
+
+	/**
+	 * Scroll to a highlighted element and optionally to a specific line
+	 * @param element - The element to scroll to
+	 * @param lineNumber - The line number to highlight, if any
+	 * @private
+	 */
+	private static scrollToHighlightedElement(element: HTMLElement, lineNumber: number | null): void
+
+	/**
+	 * Create a full-width highlight that spans both line numbers and code
+	 * @param lineContainer - The line container element
+	 * @param codeContainer - The code container element
+	 * @private
+	 */
+	private static createFullWidthHighlight(
+		lineContainer: HTMLElement,
+		codeContainer: HTMLElement
+	): void
 
 	/**
 	 * Initialize sharing functionality
@@ -290,7 +323,7 @@ declare class HighlightIt {
 	private static createFloatingButtons(
 		code: string,
 		withShare?: boolean,
-		container?: HTMLElement
+		container?: HTMLElement | null
 	): HTMLElement
 
 	/**
@@ -334,15 +367,22 @@ declare class HighlightIt {
 	private static updateLineHeights(element: HTMLElement, lineNumbersWrapper: HTMLElement): void
 
 	/**
-	 * Update code block with new content
-	 * @param element - The element to re-highlight
-	 * @param container - The container element
-	 * @param languageOrFilename - The language or filename
-	 * @param code - The code content
-	 * @param showLanguage - Whether to show the language label
-	 * @private
+	 * Updates a code block with new content
+	 * @param element The code element to update
+	 * @param container The container element
+	 * @param languageOrFilename The language or filename to use for highlighting
+	 * @param code The code to highlight
+	 * @param showLanguage Whether to show the language in the header
+	 *
+	 * @remarks
+	 * This method maintains proper ID handling to ensure consistency across re-highlighting:
+	 * 1. Line share buttons use the current ID (from data-original-id or container.id) at click time
+	 * 2. Share buttons prioritize IDs in the following order:
+	 *    - data-original-id attribute on the container
+	 *    - Existing container.id
+	 *    - Generated hash from code content
 	 */
-	private static updateCodeBlock(
+	static updateCodeBlock(
 		element: HTMLElement,
 		container: HTMLElement,
 		languageOrFilename: string | null,
@@ -390,6 +430,12 @@ declare global {
 		 * @internal
 		 */
 		_currentCode?: string
+
+		/**
+		 * Stored block ID for share buttons
+		 * @internal
+		 */
+		_currentBlockId?: string
 
 		/**
 		 * Backup of the click handler

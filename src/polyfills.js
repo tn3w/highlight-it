@@ -14,10 +14,21 @@ const polyfills = {
 			'dataset' in document.documentElement &&
 			typeof document.documentElement.dataset !== 'undefined',
 		clipboard: 'clipboard' in navigator,
+		clipboardItem: typeof ClipboardItem !== 'undefined',
 		touch:
 			'ontouchstart' in window ||
 			navigator.maxTouchPoints > 0 ||
-			navigator.msMaxTouchPoints > 0
+			navigator.msMaxTouchPoints > 0,
+		getBoundingClientRect: 'getBoundingClientRect' in document.documentElement,
+		animation: 'Animation' in window && 'animate' in document.documentElement,
+		cssHas: (function () {
+			try {
+				document.querySelector(':has(*)')
+				return true
+			} catch {
+				return false
+			}
+		})()
 	},
 
 	requestAnimationFrame: (function () {
@@ -80,6 +91,40 @@ const polyfills = {
 			}
 		}
 	})(),
+
+	getBoundingClientRect: function (element) {
+		if (!element) return { top: 0, right: 0, bottom: 0, left: 0, width: 0, height: 0 }
+
+		if (this.supports.getBoundingClientRect) {
+			try {
+				return element.getBoundingClientRect()
+			} catch {
+				//
+			}
+		}
+
+		const rect = {
+			top: element.offsetTop,
+			left: element.offsetLeft,
+			width: element.offsetWidth,
+			height: element.offsetHeight
+		}
+
+		rect.right = rect.left + rect.width
+		rect.bottom = rect.top + rect.height
+
+		let parent = element.offsetParent
+		while (parent) {
+			rect.top += parent.offsetTop
+			rect.left += parent.offsetLeft
+			parent = parent.offsetParent
+		}
+
+		rect.top -= window.scrollY || document.documentElement.scrollTop || 0
+		rect.left -= window.scrollX || document.documentElement.scrollLeft || 0
+
+		return rect
+	},
 
 	classList: {
 		add: function (element, className) {
@@ -174,29 +219,104 @@ const polyfills = {
 			}
 		}
 
-		try {
-			const clipboardItem = new ClipboardItem({
-				'text/plain': new Blob([text], { type: 'text/plain' })
-			})
-			await navigator.clipboard.write([clipboardItem])
-			return true
-		} catch {
-			const textArea = document.createElement('textarea')
-			textArea.value = text
-			textArea.style.position = 'fixed'
-			textArea.style.left = '-9999px'
-			document.body.appendChild(textArea)
-			textArea.focus()
-			textArea.select()
-
+		if (this.supports.clipboard && this.supports.clipboardItem) {
 			try {
-				const success = document.execCommand('copy')
-				document.body.removeChild(textArea)
-				return success
+				const clipboardItem = new ClipboardItem({
+					'text/plain': new Blob([text], { type: 'text/plain' })
+				})
+				await navigator.clipboard.write([clipboardItem])
+				return true
 			} catch {
-				document.body.removeChild(textArea)
-				return false
+				//
 			}
+		}
+
+		const textArea = document.createElement('textarea')
+		textArea.value = text
+		textArea.style.position = 'fixed'
+		textArea.style.left = '-9999px'
+		document.body.appendChild(textArea)
+		textArea.focus()
+		textArea.select()
+
+		try {
+			const success = document.execCommand('copy')
+			document.body.removeChild(textArea)
+			return success
+		} catch {
+			document.body.removeChild(textArea)
+			return false
+		}
+	},
+
+	animate: function (element, keyframes, options) {
+		if (!element) return null
+
+		if (this.supports.animation) {
+			try {
+				return element.animate(keyframes, options)
+			} catch {
+				//
+			}
+		}
+
+		const animationId = Date.now().toString(36)
+		const duration = options.duration || 1000
+
+		Object.keys(keyframes[0]).forEach((prop) => {
+			element.style[prop] = keyframes[0][prop]
+		})
+
+		setTimeout(() => {
+			element.style.transition = `all ${duration}ms ${options.easing || 'ease'}`
+
+			const finalState = keyframes[keyframes.length - 1]
+			Object.keys(finalState).forEach((prop) => {
+				element.style[prop] = finalState[prop]
+			})
+
+			setTimeout(() => {
+				element.style.transition = ''
+				if (options.fill !== 'forwards') {
+					Object.keys(finalState).forEach((prop) => {
+						element.style[prop] = ''
+					})
+				}
+			}, duration)
+		}, 0)
+
+		return {
+			id: animationId,
+			cancel: function () {
+				element.style.transition = ''
+			},
+			finished: new Promise((resolve) => {
+				setTimeout(resolve, duration)
+			})
+		}
+	},
+
+	/**
+	 * Helper to check if a container has an element with a certain class
+	 * Used as a fallback for browsers that don't support :has() selector
+	 *
+	 * @param {HTMLElement} container - The container element to check
+	 * @param {string} selector - The selector to look for within the container
+	 * @param {string} className - The class to add/remove from the container
+	 * @param {boolean} shouldHaveClass - Whether to add or remove the class
+	 */
+	updateHasClass: function (container, selector, className, shouldHaveClass) {
+		if (!container || !selector || !className) return
+
+		// If browser supports :has, we don't need this
+		if (this.supports.cssHas) return
+
+		const hasElement = container.querySelector(selector)
+
+		if (shouldHaveClass && hasElement) {
+			this.classList.add(container, className)
+		} else if (!shouldHaveClass && !hasElement) {
+			this.classList.remove(container, className)
 		}
 	}
 }
