@@ -761,7 +761,23 @@ function injectCSS(css) {
 			...cssVariables,
 			injectCssFunc,
 			hljsCode,
-			localImportCode, // Add the bundled local imports before the main code
+			localImportCode,
+			indexJsContent
+				.replace(/import\s+.*?from\s+['"].*?['"];?/g, '')
+				.replace(/import\s+['"].*?['"];?/g, ''),
+			'global.HighlightIt = HighlightIt;',
+			'if (typeof window !== "undefined") {',
+			'  window.HighlightIt = HighlightIt;',
+			'  injectCSS(STYLES_CSS);',
+			'}',
+			'})(typeof window !== "undefined" ? window : this);'
+		].join('\n\n')
+
+		const slimCode = [
+			'(function(global) {',
+			...cssVariables,
+			injectCssFunc,
+			localImportCode,
 			indexJsContent
 				.replace(/import\s+.*?from\s+['"].*?['"];?/g, '')
 				.replace(/import\s+['"].*?['"];?/g, ''),
@@ -774,9 +790,19 @@ function injectCSS(css) {
 		].join('\n\n')
 
 		let formattedCode = combinedCode
+		let formattedSlimCode = slimCode
 		try {
 			const prettierConfig = await prettier.resolveConfig(process.cwd())
 			formattedCode = await prettier.format(combinedCode, {
+				...prettierConfig,
+				parser: 'babel',
+				printWidth: 100,
+				tabWidth: 2,
+				semi: true,
+				singleQuote: true,
+				trailingComma: 'es5'
+			})
+			formattedSlimCode = await prettier.format(slimCode, {
 				...prettierConfig,
 				parser: 'babel',
 				printWidth: 100,
@@ -792,7 +818,11 @@ function injectCSS(css) {
 		const unminifiedWithHeader = licenseHeader + highlightJsLicense + formattedCode
 		fs.writeFileSync(path.resolve(distDir, 'highlight-it.js'), unminifiedWithHeader)
 
+		const unminifiedSlimWithHeader = licenseHeader + formattedSlimCode
+		fs.writeFileSync(path.resolve(distDir, 'highlight-it.slim.js'), unminifiedSlimWithHeader)
+
 		console.log('Minifying JavaScript...')
+		
 		const minified = UglifyJS.minify(combinedCode, {
 			compress: {
 				toplevel: true,
@@ -845,14 +875,76 @@ function injectCSS(css) {
 			}
 		})
 
+		const minifiedSlim = UglifyJS.minify(slimCode, {
+			compress: {
+				toplevel: true,
+				unsafe: false,
+				unsafe_math: false,
+				unsafe_proto: false,
+				unsafe_regexp: false,
+				unsafe_Function: false,
+				drop_console: false,
+				pure_getters: true,
+				passes: 2,
+				global_defs: {
+					DEBUG: false
+				},
+				dead_code: true,
+				drop_debugger: true,
+				keep_fargs: false,
+				keep_infinity: true,
+				reduce_vars: true,
+				unused: true,
+				hoist_funs: false,
+				hoist_vars: false,
+				inline: false,
+				join_vars: true,
+				sequences: true,
+				conditionals: true,
+				booleans: true,
+				if_return: true,
+				collapse_vars: true,
+				reduce_funcs: false,
+				merge_vars: true,
+				negate_iife: false
+			},
+			mangle: {
+				toplevel: true,
+				eval: true,
+				keep_fnames: false,
+				properties: {
+					regex: /^_/,
+					keep_quoted: false,
+					debug: false
+				},
+				keep_fargs: false
+			},
+			output: {
+				comments: /^!/,
+				beautify: false,
+				ascii_only: true,
+				wrap_iife: true
+			}
+		})
+
 		if (minified.error) {
 			console.error('Error minifying JavaScript:', minified.error)
+			return
+		}
+
+		if (minifiedSlim.error) {
+			console.error('Error minifying slim JavaScript:', minifiedSlim.error)
 			return
 		}
 
 		fs.writeFileSync(
 			path.resolve(distDir, 'highlight-it-min.js'),
 			licenseHeader + highlightJsLicense + minified.code
+		)
+
+		fs.writeFileSync(
+			path.resolve(distDir, 'highlight-it-min.slim.js'),
+			licenseHeader + minifiedSlim.code
 		)
 
 		fs.rmSync(tempDir, { recursive: true, force: true })
@@ -867,7 +959,12 @@ function injectCSS(css) {
 build()
 	.then(() => {
 		const { execSync } = require('child_process')
-		const files = ['highlight-it.js', 'highlight-it-min.js']
+		const files = [
+			'highlight-it.slim.js', 
+			'highlight-it-min.slim.js',
+			'highlight-it.js', 
+			'highlight-it-min.js',
+		]
 
 		files.forEach((file) => {
 			try {

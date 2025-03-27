@@ -29,10 +29,32 @@ Add highlight-it using this script:
 
 ```html
 <script
-	src="https://cdn.jsdelivr.net/npm/highlight-it@0.1.17/dist/highlight-it-min.js"
-	integrity="sha512-dEW940fYnXQB+CQI+FTqdJSc/Lj+HlYw2h6VpOAFTlQ5h8PT6kOmOTaFMdJUduDZE829pc30VP0dJdGseAHxLA=="
+	src="https://cdn.jsdelivr.net/npm/highlight-it@0.1.18/dist/highlight-it-min.js"
+	integrity="sha512-ht3C61am3XWp4V9AM3vgdPMuN8/TVv57gV3kphIVgUy4oBxfSAOkoojURdh0n3rQf7L6XntRV4opLWqQRiGCIg=="
 	crossorigin="anonymous"
 ></script>
+<script>
+	window.addEventListener('load', () => {
+		HighlightIt.init();
+	});
+</script>
+```
+
+## Slim Version
+
+The slim version is a lightweight alternative that excludes highlight.js from the bundle. This provides several benefits:
+
+- Significantly reduced file size for faster page loads
+- Freedom to use your preferred version of highlight.js
+- Ability to share a single highlight.js instance across multiple features
+- Better control over highlight.js configuration and customization
+- Reduced redundancy when highlight.js is already part of your project
+
+To use the slim version, you'll need to include highlight.js separately before loading highlight-it.
+
+```html
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@latest/build/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight-it@latest/dist/highlight-it.slim.js"></script>
 <script>
 	window.addEventListener('load', () => {
 		HighlightIt.init();
