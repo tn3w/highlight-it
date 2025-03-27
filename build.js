@@ -43,7 +43,10 @@ function processJsFile(filePath) {
 	const content = fs.readFileSync(filePath, 'utf8')
 
 	return content
-		.replace(/import\s+(?:{[^}]*}\s+from\s+)?['"][^'"]+['"];?\n?/g, '')
+		.replace(
+			/import\s+(?:(?:[^{}\s,]+\s*,?\s*)?(?:{[^{}]*})?\s+from\s+)?['"][^'"]+['"];?\n?/g,
+			''
+		)
 		.replace(/export default HighlightIt;?\n?/g, '')
 }
 
@@ -96,18 +99,37 @@ function extractLocalImports(filePath, basePath) {
 	return imports
 }
 
-function processLocalImport(importInfo) {
+function processLocalImport(importInfo, processedPaths = new Set()) {
+	if (processedPaths.has(importInfo.actualPath)) {
+		return ``
+	}
+
+	processedPaths.add(importInfo.actualPath)
+
 	const content = fs.readFileSync(importInfo.actualPath, 'utf8')
 
+	const nestedImports = extractLocalImports(
+		importInfo.actualPath,
+		path.dirname(importInfo.actualPath)
+	)
+	let nestedImportCode = ''
+
+	for (const nestedImport of nestedImports) {
+		nestedImportCode += processLocalImport(nestedImport, processedPaths)
+	}
+
 	let processedContent = content
-		.replace(/import\s+(?:{[^}]*}\s+from\s+)?['"][^'"]+['"];?\n?/g, '')
+		.replace(
+			/import\s+(?:(?:[^{}\s,]+\s*,?\s*)?(?:{[^{}]*})?\s+from\s+)?['"][^'"]+['"];?\n?/g,
+			''
+		)
 		.replace(/export\s+default\s+([^;]+);?/g, '')
 		.replace(/export\s+const\s+([^=]+)=/g, 'const $1=')
 		.replace(/export\s+function\s+([^(]+)/g, 'function $1')
 		.replace(/export\s+class\s+([^\s]+)/g, 'class $1')
 		.replace(/export\s+\{[^}]*\};?\n?/g, '')
 
-	let output = `// Begin bundled module: ${importInfo.relativePath}\n${processedContent}\n// End bundled module: ${importInfo.relativePath}\n`
+	let output = `// Begin bundled module: ${importInfo.relativePath}\n${nestedImportCode}${processedContent}\n// End bundled module: ${importInfo.relativePath}\n`
 
 	return output
 }
@@ -732,7 +754,10 @@ async function build() {
 
 		console.log('Processing local imports...')
 		const localImports = extractLocalImports(indexJsPath, basePath)
-		const localImportCode = localImports.map(processLocalImport).join('\n')
+		const processedPaths = new Set()
+		const localImportCode = localImports
+			.map((importInfo) => processLocalImport(importInfo, processedPaths))
+			.join('\n')
 
 		console.log(`Found ${localImports.length} local imports to bundle`)
 
@@ -822,7 +847,7 @@ function injectCSS(css) {
 		fs.writeFileSync(path.resolve(distDir, 'highlight-it.slim.js'), unminifiedSlimWithHeader)
 
 		console.log('Minifying JavaScript...')
-		
+
 		const minified = UglifyJS.minify(combinedCode, {
 			compress: {
 				toplevel: true,
@@ -960,10 +985,10 @@ build()
 	.then(() => {
 		const { execSync } = require('child_process')
 		const files = [
-			'highlight-it.slim.js', 
+			'highlight-it.slim.js',
 			'highlight-it-min.slim.js',
-			'highlight-it.js', 
-			'highlight-it-min.js',
+			'highlight-it.js',
+			'highlight-it-min.js'
 		]
 
 		files.forEach((file) => {

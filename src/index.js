@@ -9,6 +9,8 @@ import cache from './cache'
 
 import hljs from 'highlight.js'
 
+const BASE62_CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+
 /**
  * HighlightIt class for syntax highlighting
  */
@@ -22,6 +24,7 @@ class HighlightIt {
 	 * @param {boolean} [options.showLanguage=true] - Whether to show the language label
 	 * @param {boolean} [options.addHeader=true] - Whether to add the header section to code blocks
 	 * @param {boolean} [options.addLines=false] - Whether to add line numbers to code blocks
+	 * @param {boolean} [options.addShare=false] - Whether to add share button to code blocks
 	 * @param {string} [options.theme='auto'] - Theme to use ('light', 'dark', or 'auto')
 	 * @param {number} [options.debounceTime=50] - Debounce time in ms for live updates (lower values = more responsive)
 	 */
@@ -33,6 +36,7 @@ class HighlightIt {
 			showLanguage = true,
 			addHeader = true,
 			addLines = false,
+			addShare = false,
 			theme = 'auto',
 			debounceTime = 50
 		} = options
@@ -58,16 +62,204 @@ class HighlightIt {
 					addCopyButton,
 					showLanguage,
 					addHeader,
-					addLines
+					addLines,
+					addShare
 				)
 			}
 			if (endIndex < elements.length) {
 				polyfills.requestAnimationFrame(() => processChunk(endIndex))
+			} else {
+				if (window.location.hash) {
+					this.scrollToAnchor()
+				}
 			}
 		}
 
 		processChunk(0)
 		this._initialized = true
+
+		this.initSharing()
+	}
+
+	/**
+	 * Generate a hash using SHA-256 and convert to a 12-character base62 string
+	 * @param {string} input - The string to hash
+	 * @returns {Promise<string>} - A 12-character base62 hash
+	 */
+	static async generateHash(input) {
+		const encoder = new TextEncoder()
+		const data = encoder.encode(input)
+
+		const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+
+		const hashArray = Array.from(new Uint8Array(hashBuffer))
+
+		let base62Hash = ''
+		let value = 0n
+
+		for (let i = 0; i < hashArray.length; i++) {
+			value = (value << 8n) | BigInt(hashArray[i])
+		}
+
+		while (value > 0 || base62Hash.length < 12) {
+			const remainder = Number(value % 62n)
+			base62Hash = BASE62_CHARS[remainder] + base62Hash
+			value = value / 62n
+
+			if (value === 0n && base62Hash.length < 12) {
+				base62Hash = '0' + base62Hash
+			}
+		}
+
+		return base62Hash.slice(-12).padStart(12, '0')
+	}
+
+	/**
+	 * Create a share button for code blocks
+	 * @param {string} code - The code to generate hash from if no id exists
+	 * @param {HTMLElement} container - The container element (to extract id)
+	 * @returns {HTMLElement} - The share button element
+	 */
+	static async createShareButton(code, container) {
+		const shareButton = document.createElement('button')
+		shareButton.className = 'highlightit-button highlightit-share'
+		shareButton.setAttribute('aria-label', 'Share code')
+		shareButton.innerHTML = cache.svgIcons.share
+
+		let blockId = ''
+		const originalId = container.getAttribute('data-original-id')
+		
+		if (originalId) {
+			blockId = originalId
+		} else {
+			if (container.id) {
+				blockId = container.id
+			} else {
+				blockId = await this.generateHash(code)
+				container.id = blockId
+			}
+		}
+
+		const clickListener = async () => {
+			const targetId = container.getAttribute('data-original-id') || container.id
+			
+			const url = new URL(window.location.href)
+			url.hash = targetId || blockId
+
+			const success = await polyfills.copyToClipboard(url.toString())
+
+			if (success) {
+				shareButton.classList.add('copied')
+
+				shareButton.innerHTML = cache.svgIcons.check
+
+				setTimeout(() => {
+					shareButton.classList.remove('copied')
+					shareButton.innerHTML = cache.svgIcons.share
+				}, 2000)
+			}
+		}
+
+		shareButton.onclickBackup = clickListener
+		shareButton._currentBlockId = blockId
+		shareButton.addEventListener('click', clickListener)
+
+		return shareButton
+	}
+
+	/**
+	 * Update block ID when code changes for blocks with live updates
+	 * @param {HTMLElement} container - The container element
+	 * @param {string} newCode - The new code content
+	 * @returns {Promise<string>} - The updated block ID
+	 */
+	static async updateBlockId(container, newCode) {
+		const originalId = container.getAttribute('data-original-id')
+
+		if (originalId) {
+			const originalElement = document.querySelector(`.highlightit-original[id="${originalId}"]`)
+			
+			if (originalElement) {
+				if (originalElement.id !== originalId) {
+					originalElement.id = originalId
+				}
+
+				if (container.id === originalId) {
+					container.id = ''
+				}
+				container.setAttribute('data-original-id', originalId)
+			} else {
+				if (!container.id || container.id !== originalId) {
+					container.id = originalId
+				}
+			}
+			
+			return originalId
+		} else {
+			const newId = await this.generateHash(newCode)
+			container.id = newId
+			return newId
+		}
+	}
+
+	/**
+	 * Scroll to the element specified in the URL hash
+	 * @param {number} [attempts=0] - Number of attempts made so far
+	 */
+	static scrollToAnchor(attempts = 0) {
+		const hash = window.location.hash.substring(1)
+		if (!hash) return
+
+		const target = document.getElementById(hash)
+		if (target) {
+			if (target.classList.contains('highlightit-original')) {
+				const uniqueId = target.getAttribute('data-highlightit-id')
+				let visibleTarget = null
+				
+				if (uniqueId) {
+					visibleTarget = document.querySelector(`[data-linked-original="${uniqueId}"]`)
+				}
+				
+				if (visibleTarget) {
+					setTimeout(() => {
+						visibleTarget.scrollIntoView({ behavior: 'smooth', block: 'start' })
+						visibleTarget.classList.add('highlightit-anchor-highlight')
+						setTimeout(() => {
+							visibleTarget.classList.remove('highlightit-anchor-highlight')
+						}, 2000)
+					}, 100)
+					return
+				}
+			}
+			
+			setTimeout(() => {
+				target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+				target.classList.add('highlightit-anchor-highlight')
+				setTimeout(() => {
+					target.classList.remove('highlightit-anchor-highlight')
+				}, 2000)
+			}, 100)
+		} else if (attempts < 10) {
+			setTimeout(
+				() => {
+					this.scrollToAnchor(attempts + 1)
+				},
+				300 * (attempts + 1)
+			)
+		}
+	}
+
+	/**
+	 * Initialize the share functionality
+	 */
+	static initSharing() {
+		setTimeout(() => {
+			this.scrollToAnchor()
+		}, 100)
+
+		window.addEventListener('hashchange', () => {
+			this.scrollToAnchor()
+		})
 	}
 
 	/**
@@ -78,9 +270,18 @@ class HighlightIt {
 	 * @param {boolean} showLanguage - Whether to show the language label
 	 * @param {boolean} addHeader - Whether to add header section
 	 * @param {boolean} addLines - Whether to add line numbers
+	 * @param {boolean} addShare - Whether to add share button
 	 * @private
 	 */
-	static processElement(element, autoDetect, addCopyButton, showLanguage, addHeader, addLines) {
+	static processElement(
+		element,
+		autoDetect,
+		addCopyButton,
+		showLanguage,
+		addHeader,
+		addLines,
+		addShare
+	) {
 		let codeElement
 		let preElement
 		let originalElement = null
@@ -115,11 +316,11 @@ class HighlightIt {
 				if (preElement.id) {
 					originalElement.id = preElement.id
 					preElement.setAttribute('data-original-id', preElement.id)
-					preElement.id = preElement.id + '-highlighted'
+					preElement.id = ''
 				}
 
 				originalElement.setAttribute('data-highlightit-id', uniqueId)
-				originalElement.style.display = 'none'
+				originalElement.classList.add('highlightit-visually-hidden')
 
 				if (element.dataset.language) {
 					originalCodeElement.dataset.language = element.dataset.language
@@ -127,6 +328,10 @@ class HighlightIt {
 
 				if (element.dataset.lineStart !== undefined) {
 					originalCodeElement.dataset.lineStart = element.dataset.lineStart
+				}
+
+				if (element.dataset.withShare !== undefined) {
+					originalCodeElement.dataset.withShare = element.dataset.withShare
 				}
 
 				originalElement.appendChild(originalCodeElement)
@@ -154,11 +359,11 @@ class HighlightIt {
 				if (element.id) {
 					originalElement.id = element.id
 					element.setAttribute('data-original-id', element.id)
-					element.id = element.id + '-highlighted'
+					element.id = ''
 				}
 
 				originalElement.setAttribute('data-highlightit-id', uniqueId)
-				originalElement.style.display = 'none'
+				originalElement.classList.add('highlightit-visually-hidden')
 
 				if (element.dataset.language) {
 					originalCodeElement.dataset.language = element.dataset.language
@@ -166,6 +371,10 @@ class HighlightIt {
 
 				if (element.dataset.lineStart !== undefined) {
 					originalCodeElement.dataset.lineStart = element.dataset.lineStart
+				}
+
+				if (element.dataset.withShare !== undefined) {
+					originalCodeElement.dataset.withShare = element.dataset.withShare
 				}
 
 				element.parentNode.insertBefore(originalElement, element)
@@ -219,7 +428,15 @@ class HighlightIt {
 			container.classList.add('highlightit-with-lines')
 		}
 
-		this.highlightElement(element, autoDetect, addCopyButton, showLanguage, addHeader, addLines)
+		this.highlightElement(
+			element,
+			autoDetect,
+			addCopyButton,
+			showLanguage,
+			addHeader,
+			addLines,
+			addShare
+		)
 	}
 
 	/**
@@ -249,6 +466,7 @@ class HighlightIt {
 	 * @param {boolean} showLanguage - Whether to show the language label
 	 * @param {boolean} addHeader - Whether to add header section
 	 * @param {boolean} addLines - Whether to add line numbers
+	 * @param {boolean} addShare - Whether to add share button
 	 * @private
 	 *
 	 * The element can have various data attributes:
@@ -260,8 +478,17 @@ class HighlightIt {
 	 * - data-no-header: Hide the header (language label and copy button)
 	 * - data-no-copy: Hide the copy button
 	 * - data-with-reload: Enable live updates - code will be rehighlighted automatically when content changes
+	 * - data-with-share: Add a share button that copies the URL with the element ID as the fragment
 	 */
-	static highlightElement(element, autoDetect, addCopyButton, showLanguage, addHeader, addLines) {
+	static highlightElement(
+		element,
+		autoDetect,
+		addCopyButton,
+		showLanguage,
+		addHeader,
+		addLines,
+		addShare
+	) {
 		const container = this.createCodeContainer(element)
 
 		const code = (element.textContent || '').trim()
@@ -284,6 +511,10 @@ class HighlightIt {
 		const withLiveUpdates =
 			elementDataset.withReload !== undefined || containerDataset.withReload !== undefined
 		const noCopy = elementDataset.noCopy !== undefined || containerDataset.noCopy !== undefined
+		const withShare =
+			addShare ||
+			elementDataset.withShare !== undefined ||
+			containerDataset.withShare !== undefined
 
 		const shouldAddCopyButton = addCopyButton && !noCopy
 
@@ -317,19 +548,31 @@ class HighlightIt {
 			}
 		}
 
-		if ((showLanguage || shouldAddCopyButton) && addHeader && !noHeader) {
+		if (withShare && !withLiveUpdates) {
+			(async () => {
+				const originalId = container.getAttribute('data-original-id') || container.id
+				if (!originalId) {
+					const blockId = await this.generateHash(code)
+					container.id = blockId
+				}
+			})()
+		}
+
+		if ((showLanguage || shouldAddCopyButton || withShare) && addHeader && !noHeader) {
 			const header = this.createCodeHeader(
 				displayLabel,
 				code,
 				shouldAddCopyButton,
-				showLanguage
+				showLanguage,
+				withShare,
+				container
 			)
 			container.prepend(header)
 		} else if (noHeader) {
 			container.classList.add('highlightit-no-header')
-			if (shouldAddCopyButton) {
-				const floatingCopy = this.createFloatingCopyButton(code)
-				container.appendChild(floatingCopy)
+			if (shouldAddCopyButton || withShare) {
+				const floatingBtns = this.createFloatingButtons(code, withShare, container)
+				container.appendChild(floatingBtns)
 			}
 		}
 
@@ -338,7 +581,7 @@ class HighlightIt {
 		}
 
 		if (withLiveUpdates) {
-			this.setupMutationObserver(element, container, autoDetect, showLanguage)
+			this.setupLiveUpdates(element, container, autoDetect, showLanguage, withShare)
 		}
 
 		if (!language && autoDetect) {
@@ -410,14 +653,15 @@ class HighlightIt {
 	}
 
 	/**
-	 * Set up a mutation observer to watch for changes to the code element
+	 * Set up live updates to watch for changes to the code element
 	 * @param {HTMLElement} element - The code element to watch
 	 * @param {HTMLElement} container - The container element
 	 * @param {boolean} autoDetect - Whether to auto-detect language
 	 * @param {boolean} showLanguage - Whether to show the language label
+	 * @param {boolean} withShare - Whether to update block ID for sharing
 	 * @private
 	 */
-	static setupMutationObserver(element, container, autoDetect, showLanguage) {
+	static setupLiveUpdates(element, container, autoDetect, showLanguage, withShare) {
 		if (!polyfills.supports.MutationObserver) {
 			return
 		}
@@ -463,39 +707,43 @@ class HighlightIt {
 
 			lastProcessedCode = code
 
-			if (!language && autoDetect) {
-				if (
-					!detectedLanguage ||
-					(showLanguage &&
-						!container.querySelector('.highlightit-header .highlightit-language'))
-				) {
-					const result = this.autoDetectLanguage(code)
-					detectedLanguage = result.language || 'unknown'
-					targetElement.innerHTML = result.value
-					polyfills.classList.add(targetElement, `language-${detectedLanguage}`)
+			if (withShare) {
+				this.updateCodeBlock(targetElement, container, language, code, showLanguage)
+			} else {
+				if (!language && autoDetect) {
+					if (
+						!detectedLanguage ||
+						(showLanguage &&
+							!container.querySelector('.highlightit-header .highlightit-language'))
+					) {
+						const result = this.autoDetectLanguage(code)
+						detectedLanguage = result.language || 'unknown'
+						targetElement.innerHTML = result.value
+						polyfills.classList.add(targetElement, `language-${detectedLanguage}`)
 
-					if (showLanguage && detectedLanguage) {
-						const header = container.querySelector('.highlightit-header')
-						if (header) {
-							const languageLabel = header.querySelector('.highlightit-language')
-							if (languageLabel) {
-								languageLabel.textContent = detectedLanguage
-							} else {
-								const newLanguageLabel = document.createElement('span')
-								newLanguageLabel.className = 'highlightit-language'
-								newLanguageLabel.textContent = detectedLanguage
-								header.insertBefore(newLanguageLabel, header.firstChild)
+						if (showLanguage && detectedLanguage) {
+							const header = container.querySelector('.highlightit-header')
+							if (header) {
+								const languageLabel = header.querySelector('.highlightit-language')
+								if (languageLabel) {
+									languageLabel.textContent = detectedLanguage
+								} else {
+									const newLanguageLabel = document.createElement('span')
+									newLanguageLabel.className = 'highlightit-language'
+									newLanguageLabel.textContent = detectedLanguage
+									header.insertBefore(newLanguageLabel, header.firstChild)
+								}
 							}
 						}
+					} else {
+						const result = hljs.highlight(code, { language: detectedLanguage })
+						targetElement.innerHTML = result.value
+						polyfills.classList.add(targetElement, `language-${detectedLanguage}`)
 					}
 				} else {
-					const result = hljs.highlight(code, { language: detectedLanguage })
-					targetElement.innerHTML = result.value
-					polyfills.classList.add(targetElement, `language-${detectedLanguage}`)
+					this.updateCodeBlock(targetElement, container, language, code, showLanguage)
+					polyfills.classList.add(targetElement, `language-${language || 'unknown'}`)
 				}
-			} else {
-				this.rehighlightElement(targetElement, container, language, code, showLanguage)
-				polyfills.classList.add(targetElement, `language-${language || 'unknown'}`)
 			}
 
 			if (container.classList.contains('highlightit-with-lines')) {
@@ -600,10 +848,19 @@ class HighlightIt {
 	 * @param {string} code - The code to copy
 	 * @param {boolean} addCopyButton - Whether to add a copy button
 	 * @param {boolean} showLanguage - Whether to show the language label
+	 * @param {boolean} addShareButton - Whether to add a share button
+	 * @param {HTMLElement} container - The container element (for share button)
 	 * @returns {HTMLElement} - The header element
 	 * @private
 	 */
-	static createCodeHeader(displayLabel, code, addCopyButton, showLanguage) {
+	static createCodeHeader(
+		displayLabel,
+		code,
+		addCopyButton,
+		showLanguage,
+		addShareButton,
+		container
+	) {
 		const header = document.createElement('div')
 		header.className = 'highlightit-header'
 
@@ -614,10 +871,23 @@ class HighlightIt {
 			header.appendChild(labelElement)
 		}
 
+		const buttonContainer = document.createElement('div')
+		buttonContainer.className = 'highlightit-buttons-container'
+		buttonContainer.style.display = 'flex'
+		buttonContainer.style.alignItems = 'center'
+
 		if (addCopyButton) {
 			const copyButton = this.createCopyButton(code)
-			header.appendChild(copyButton)
+			buttonContainer.appendChild(copyButton)
 		}
+		
+		if (addShareButton) {
+			this.createShareButton(code, container).then((shareButton) => {
+				buttonContainer.appendChild(shareButton)
+			})
+		}
+
+		header.appendChild(buttonContainer)
 
 		return header
 	}
@@ -630,9 +900,9 @@ class HighlightIt {
 	 */
 	static createCopyButton(code) {
 		const copyButton = document.createElement('button')
-		copyButton.className = 'highlightit-copy'
+		copyButton.className = 'highlightit-button highlightit-copy'
 		copyButton.setAttribute('aria-label', 'Copy code')
-		copyButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="highlightit-copy-icon"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="highlightit-check-icon" style="display: none;"><polyline points="20 6 9 17 4 12"></polyline></svg>`
+		copyButton.innerHTML = `${cache.svgIcons.copy}${cache.svgIcons.check.replace('highlightit-check-icon', 'highlightit-check-icon" style="display: none;')}`
 
 		const clickListener = async () => {
 			const codeToCopy = code.trim()
@@ -645,8 +915,10 @@ class HighlightIt {
 
 				setTimeout(() => {
 					polyfills.classList.remove(copyButton, 'copied')
-					copyButton.querySelector('.highlightit-copy-icon').style.display = 'block'
-					copyButton.querySelector('.highlightit-check-icon').style.display = 'none'
+					copyButton.querySelector('.highlightit-copy-icon').style.display =
+						'block'
+					copyButton.querySelector('.highlightit-check-icon').style.display =
+						'none'
 				}, 2000)
 			} else {
 				console.warn('Failed to copy code')
@@ -661,20 +933,40 @@ class HighlightIt {
 	}
 
 	/**
-	 * Create floating copy button for no-header mode
+	 * Create floating buttons for no-header mode
 	 * @param {string} code - The code to copy
-	 * @returns {HTMLElement} - The floating copy button element
+	 * @param {boolean} withShare - Whether to add a share button
+	 * @param {HTMLElement} container - The container element for share functionality
+	 * @returns {HTMLElement} - The container with floating buttons
 	 * @private
 	 */
-	static createFloatingCopyButton(code) {
+	static createFloatingButtons(code, withShare = false, container = null) {
+		const buttonsContainer = document.createElement('div')
+		buttonsContainer.className = 'highlightit-floating-buttons'
+
 		const copyButton = this.createCopyButton(code)
-		copyButton.className += ' highlightit-floating-copy'
+		copyButton.className = 'highlightit-button highlightit-copy highlightit-floating'
 
 		if (this.isTouchDevice) {
 			copyButton.style.opacity = '1'
 		}
 
-		return copyButton
+		buttonsContainer.appendChild(copyButton)
+		
+		if (withShare && container) {
+			(async () => {
+				const shareButton = await this.createShareButton(code, container)
+				shareButton.className = 'highlightit-button highlightit-share highlightit-floating'
+				
+				if (this.isTouchDevice) {
+					shareButton.style.opacity = '1'
+				}
+				
+				buttonsContainer.appendChild(shareButton)
+			})()
+		}
+
+		return buttonsContainer
 	}
 
 	/**
@@ -774,7 +1066,7 @@ class HighlightIt {
 	}
 
 	/**
-	 * Rehighlight an element with updated content
+	 * Update code block with new content
 	 * @param {HTMLElement} element - The code element to rehighlight
 	 * @param {HTMLElement} container - The container element
 	 * @param {string} languageOrFilename - The language or filename to use
@@ -782,7 +1074,7 @@ class HighlightIt {
 	 * @param {boolean} showLanguage - Whether to show the language label
 	 * @private
 	 */
-	static rehighlightElement(element, container, languageOrFilename, code, showLanguage) {
+	static updateCodeBlock(element, container, languageOrFilename, code, showLanguage) {
 		const cleanedCode = code.trim()
 		const withLines =
 			container.classList.contains('highlightit-with-lines') ||
@@ -836,10 +1128,7 @@ class HighlightIt {
 				}
 			}
 
-			const copyButtons = container.querySelectorAll(
-				'.highlightit-copy, .highlightit-floating-copy'
-			)
-
+			const copyButtons = container.querySelectorAll('.highlightit-copy')
 			copyButtons.forEach((copyButton) => {
 				const currentCode = copyButton._currentCode
 
@@ -879,6 +1168,64 @@ class HighlightIt {
 				}
 			})
 
+			const shareButtons = container.querySelectorAll('.highlightit-share')
+			shareButtons.forEach(async (shareButton) => {
+				const originalId = container.getAttribute('data-original-id')
+				
+				if (originalId) {
+					if (shareButton._currentBlockId !== originalId) {
+						shareButton._currentBlockId = originalId
+					}
+					return
+				}
+				
+				const blockId = await this.generateHash(cleanedCode)
+				container.id = blockId
+				
+				if (shareButton._currentBlockId !== blockId) {
+					const clickListener = shareButton.onclickBackup || shareButton.onclick
+					
+					if (clickListener) {
+						shareButton.removeEventListener('click', clickListener)
+					}
+					
+					const newClickListener = async () => {
+						const url = new URL(window.location.href)
+						url.hash = blockId
+						
+						const success = await polyfills.copyToClipboard(url.toString())
+						
+						if (success) {
+							shareButton.classList.add('copied')
+							
+							const originalIcon = shareButton.innerHTML
+							shareButton.innerHTML = cache.svgIcons.check
+							
+							setTimeout(() => {
+								shareButton.classList.remove('copied')
+								shareButton.innerHTML = originalIcon
+							}, 2000)
+						}
+					}
+					
+					shareButton.onclickBackup = newClickListener
+					shareButton._currentBlockId = blockId
+					shareButton.addEventListener('click', newClickListener)
+				}
+			})
+
+			const floatingBtnsContainer = container.querySelector('.highlightit-floating-buttons')
+			if (floatingBtnsContainer && container.classList.contains('highlightit-no-header')) {
+				container.removeChild(floatingBtnsContainer)
+				const withShare = container.dataset.withShare !== undefined
+				const newFloatingBtns = this.createFloatingButtons(
+					cleanedCode,
+					withShare,
+					container
+				)
+				container.appendChild(newFloatingBtns)
+			}
+
 			if (showLanguage && language) {
 				const header = container.querySelector('.highlightit-header')
 				const languageLabel = header?.querySelector('.highlightit-language')
@@ -917,6 +1264,14 @@ class HighlightIt {
 	}
 }
 
+if (typeof window !== 'undefined') {
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', () => HighlightIt.initSharing())
+	} else {
+		HighlightIt.initSharing()
+	}
+}
+
 export default HighlightIt
 
 /**
@@ -929,6 +1284,7 @@ export default HighlightIt
  * @param {boolean} [options.addHeader=true] - Whether to add a header section
  * @param {boolean} [options.addLines=false] - Whether to add line numbers
  * @param {boolean} [options.withReload=false] - Whether to enable live updates
+ * @param {boolean} [options.addShare=false] - Whether to add a share button
  * @param {string} [options.language] - The language to use for syntax highlighting
  * @param {string} [options.theme] - Theme override for this element ('light', 'dark', or 'auto')
  * @param {number} [options.lineStart] - Starting line number (default is 1, can be positive or negative)
@@ -952,6 +1308,7 @@ HighlightIt.highlight = function (element, options = {}) {
 		addHeader = true,
 		addLines = false,
 		withReload = false,
+		addShare = false,
 		language,
 		theme,
 		lineStart
@@ -977,6 +1334,10 @@ HighlightIt.highlight = function (element, options = {}) {
 		element.dataset.noCopy = ''
 	}
 
+	if (addShare) {
+		element.dataset.withShare = ''
+	}
+
 	if (language) {
 		element.dataset.language = language
 	}
@@ -985,7 +1346,15 @@ HighlightIt.highlight = function (element, options = {}) {
 		element.dataset.theme = theme
 	}
 
-	this.processElement(element, autoDetect, addCopyButton, showLanguage, addHeader, addLines)
+	this.processElement(
+		element,
+		autoDetect,
+		addCopyButton,
+		showLanguage,
+		addHeader,
+		addLines,
+		addShare
+	)
 
 	const container =
 		element.closest('.highlightit-container') ||

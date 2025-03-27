@@ -37,6 +37,7 @@
 	--hl-title-function: #dcdcaa;
 	--hl-title-class: #4ec9b0;
 	--hl-title-namespace: #4ec9b0;
+	--hl-text-rgb: 212, 212, 212;
 }
 
 .highlightit-theme-light {
@@ -78,6 +79,7 @@
 	--hl-title-function: #795e26;
 	--hl-title-class: #267f99;
 	--hl-title-namespace: #267f99;
+	--hl-text-rgb: 51, 51, 51;
 }
 
 @media (prefers-color-scheme: light) {
@@ -120,6 +122,7 @@
 		--hl-title-function: #795e26;
 		--hl-title-class: #267f99;
 		--hl-title-namespace: #267f99;
+		--hl-text-rgb: 51, 51, 51;
 	}
 }
 
@@ -236,19 +239,34 @@
 	font-family: SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
 }
 
-.highlightit-copy {
+.highlightit-button {
 	background: transparent;
 	border: none;
 	color: var(--hl-text);
 	cursor: pointer;
-	padding: 4px;
+	padding: 4px 6px;
 	border-radius: 4px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	transition: all 0.2s ease;
 	height: 28px;
-	width: 28px;
+}
+
+.highlightit-button:hover {
+	background: var(--hl-hover-bg);
+}
+
+.highlightit-button.copied {
+	color: var(--hl-copied-color);
+}
+
+.highlightit-copy-icon,
+.highlightit-check-icon,
+.highlightit-share-icon {
+	width: 16px;
+	height: 16px;
+	vertical-align: middle;
 }
 
 .highlightit-original,
@@ -268,56 +286,46 @@
 	clip-path: inset(50%) !important;
 }
 
-.highlightit-copy:hover {
-	background-color: var(--hl-hover-bg);
-	transform: scale(1.1);
-}
-
-.highlightit-copy.copied {
-	color: var(--hl-copied-color);
-}
-
-.highlightit-copy-icon,
-.highlightit-check-icon {
-	width: 16px;
-	height: 16px;
-}
-
-.highlightit-floating-copy {
+.highlightit-floating-buttons {
 	position: absolute;
 	top: 8px;
 	right: 8px;
 	opacity: 0;
-	transition:
-		opacity 0.2s ease,
-		background-color 0.2s ease,
-		transform 0.2s ease;
+	transition: opacity 0.2s ease;
 	z-index: 10;
-	background-color: rgba(45, 45, 45, 0.8);
+	display: flex;
+	gap: 4px;
 }
 
-.highlightit-theme-light .highlightit-floating-copy,
-:root.highlightit-theme-auto.system-light-theme .highlightit-floating-copy,
-.highlightit-container[data-theme='light'] .highlightit-floating-copy {
+.highlightit-button.highlightit-floating {
+	background-color: rgba(45, 45, 45, 0.8);
+	transition:
+		background-color 0.2s ease,
+		transform 0.2s ease;
+}
+
+.highlightit-theme-light .highlightit-button.highlightit-floating,
+:root.highlightit-theme-auto.system-light-theme .highlightit-button.highlightit-floating,
+.highlightit-container[data-theme='light'] .highlightit-button.highlightit-floating {
 	background-color: rgba(200, 200, 200, 0.8);
 }
 
-.highlightit-no-header:hover .highlightit-floating-copy {
+.highlightit-no-header:hover .highlightit-floating-buttons {
 	opacity: 1;
 }
 
-:root.highlightit-touch-device .highlightit-floating-copy {
+:root.highlightit-touch-device .highlightit-floating-buttons {
 	opacity: 1;
 }
 
-.highlightit-floating-copy:hover {
+.highlightit-button.highlightit-floating:hover {
 	background-color: rgba(65, 65, 65, 0.9);
 	transform: scale(1.05);
 }
 
-.highlightit-theme-light .highlightit-floating-copy:hover,
-:root.highlightit-theme-auto.system-light-theme .highlightit-floating-copy:hover,
-.highlightit-container[data-theme='light'] .highlightit-floating-copy:hover {
+.highlightit-theme-light .highlightit-button.highlightit-floating:hover,
+:root.highlightit-theme-auto.system-light-theme .highlightit-button.highlightit-floating:hover,
+.highlightit-container[data-theme='light'] .highlightit-button.highlightit-floating:hover {
 	background-color: rgba(170, 170, 170, 0.9);
 	transform: scale(1.05);
 }
@@ -433,6 +441,22 @@ html .highlightit-container[data-theme='light'] pre {
 
 .highlightit-has-line-numbers code {
 	margin-left: 1em;
+}
+
+.highlightit-anchor-highlight {
+	animation: highlightit-anchor-pulse 2s ease-in-out;
+}
+
+@keyframes highlightit-anchor-pulse {
+	0% {
+		box-shadow: 0 0 0 0 rgba(var(--hl-text-rgb), 0.2);
+	}
+	70% {
+		box-shadow: 0 0 0 10px rgba(var(--hl-text-rgb), 0);
+	}
+	100% {
+		box-shadow: 0 0 0 0 rgba(var(--hl-text-rgb), 0);
+	}
 }
 
 .hljs-keyword {
@@ -709,4 +733,18 @@ html .highlightit-container[data-theme='light'] pre {
 :root.highlightit-theme-auto.system-light-theme .highlightit-line-numbers,
 .highlightit-container[data-theme='light'] .highlightit-line-numbers {
 	border-right-color: #cccccc !important;
+}
+
+.highlightit-visually-hidden {
+	position: absolute !important;
+	width: 1px !important;
+	height: 1px !important;
+	padding: 0 !important;
+	margin: -1px !important;
+	overflow: hidden !important;
+	clip: rect(0, 0, 0, 0) !important;
+	white-space: nowrap !important;
+	border: 0 !important;
+	pointer-events: none !important;
+	opacity: 0.01 !important;
 }

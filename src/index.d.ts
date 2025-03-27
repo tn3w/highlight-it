@@ -44,6 +44,12 @@ export interface HighlightItOptions {
 	addLines?: boolean
 
 	/**
+	 * Whether to add share button to code blocks
+	 * @default false
+	 */
+	addShare?: boolean
+
+	/**
 	 * Theme to use ('light', 'dark', or 'auto')
 	 * @default 'auto'
 	 */
@@ -97,6 +103,12 @@ export interface HighlightElementOptions {
 	withReload?: boolean
 
 	/**
+	 * Whether to add share button
+	 * @default false
+	 */
+	addShare?: boolean
+
+	/**
 	 * The language to use for syntax highlighting
 	 */
 	language?: string
@@ -132,6 +144,40 @@ declare class HighlightIt {
 	static highlight(element: HTMLElement, options?: HighlightElementOptions): HTMLElement
 
 	/**
+	 * Generate a hash using SHA-256 and convert to a 12-character base62 string
+	 * @param input - The string to hash
+	 * @returns A 12-character base62 hash
+	 */
+	static generateHash(input: string): Promise<string>
+
+	/**
+	 * Create a share button for code blocks
+	 * @param code - The code to generate hash from if no id exists
+	 * @param container - The container element (to extract id)
+	 * @returns The share button element
+	 */
+	static createShareButton(code: string, container: HTMLElement): Promise<HTMLElement>
+
+	/**
+	 * Update block ID when code changes for blocks with live updates
+	 * @param container - The container element
+	 * @param newCode - The new code content
+	 * @returns The updated block ID
+	 */
+	static updateBlockId(container: HTMLElement, newCode: string): Promise<string>
+
+	/**
+	 * Scroll to the element specified in the URL hash
+	 * @param attempts - Number of attempts made so far
+	 */
+	static scrollToAnchor(attempts?: number): void
+
+	/**
+	 * Initialize sharing functionality
+	 */
+	static initSharing(): void
+
+	/**
 	 * Apply global theme to the document root
 	 * @param theme - Theme to apply ('light', 'dark', or 'auto')
 	 * @private
@@ -146,6 +192,7 @@ declare class HighlightIt {
 	 * @param showLanguage - Whether to show the language label
 	 * @param addHeader - Whether to add header section
 	 * @param addLines - Whether to add line numbers
+	 * @param addShare - Whether to add share button
 	 * @private
 	 */
 	private static processElement(
@@ -154,7 +201,8 @@ declare class HighlightIt {
 		addCopyButton: boolean,
 		showLanguage: boolean,
 		addHeader: boolean,
-		addLines: boolean
+		addLines: boolean,
+		addShare: boolean
 	): void
 
 	/**
@@ -165,6 +213,7 @@ declare class HighlightIt {
 	 * @param showLanguage - Whether to show the language label
 	 * @param addHeader - Whether to add header section
 	 * @param addLines - Whether to add line numbers
+	 * @param addShare - Whether to add share button
 	 * @private
 	 */
 	private static highlightElement(
@@ -173,22 +222,25 @@ declare class HighlightIt {
 		addCopyButton: boolean,
 		showLanguage: boolean,
 		addHeader: boolean,
-		addLines: boolean
+		addLines: boolean,
+		addShare: boolean
 	): void
 
 	/**
-	 * Set up a mutation observer to watch for changes to the code element
+	 * Set up live updates to watch for changes to the code element
 	 * @param element - The code element to watch
 	 * @param container - The container element
 	 * @param autoDetect - Whether to auto-detect language
 	 * @param showLanguage - Whether to show the language label
+	 * @param withShare - Whether to update block ID for sharing
 	 * @private
 	 */
-	private static setupMutationObserver(
+	private static setupLiveUpdates(
 		element: HTMLElement,
 		container: HTMLElement,
 		autoDetect: boolean,
-		showLanguage: boolean
+		showLanguage: boolean,
+		withShare: boolean
 	): void
 
 	/**
@@ -205,6 +257,8 @@ declare class HighlightIt {
 	 * @param code - The code to copy
 	 * @param addCopyButton - Whether to add a copy button
 	 * @param showLanguage - Whether to show the language label
+	 * @param addShareButton - Whether to add a share button
+	 * @param container - The container element (for share button)
 	 * @returns The header element
 	 * @private
 	 */
@@ -212,7 +266,9 @@ declare class HighlightIt {
 		displayLabel: string | null,
 		code: string,
 		addCopyButton: boolean,
-		showLanguage: boolean
+		showLanguage: boolean,
+		addShareButton: boolean,
+		container: HTMLElement
 	): HTMLElement
 
 	/**
@@ -224,12 +280,18 @@ declare class HighlightIt {
 	private static createCopyButton(code: string): HTMLElement
 
 	/**
-	 * Create floating copy button for no-header mode
+	 * Create floating buttons for no-header mode
 	 * @param code - The code to copy
-	 * @returns The floating copy button element
+	 * @param withShare - Whether to add a share button
+	 * @param container - The container element for share functionality
+	 * @returns The floating buttons container
 	 * @private
 	 */
-	private static createFloatingCopyButton(code: string): HTMLElement
+	private static createFloatingButtons(
+		code: string,
+		withShare?: boolean,
+		container?: HTMLElement
+	): HTMLElement
 
 	/**
 	 * Get language from filename extension
@@ -272,7 +334,7 @@ declare class HighlightIt {
 	private static updateLineHeights(element: HTMLElement, lineNumbersWrapper: HTMLElement): void
 
 	/**
-	 * Re-highlight an element with updated content
+	 * Update code block with new content
 	 * @param element - The element to re-highlight
 	 * @param container - The container element
 	 * @param languageOrFilename - The language or filename
@@ -280,7 +342,7 @@ declare class HighlightIt {
 	 * @param showLanguage - Whether to show the language label
 	 * @private
 	 */
-	private static rehighlightElement(
+	private static updateCodeBlock(
 		element: HTMLElement,
 		container: HTMLElement,
 		languageOrFilename: string | null,
