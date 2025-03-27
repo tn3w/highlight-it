@@ -105,6 +105,12 @@ export interface HighlightElementOptions {
 	 * Theme override for this element ('light', 'dark', or 'auto')
 	 */
 	theme?: 'light' | 'dark' | 'auto'
+
+	/**
+	 * Starting line number for line numbering
+	 * @default 1
+	 */
+	lineStart?: number
 }
 
 /**
@@ -258,6 +264,14 @@ declare class HighlightIt {
 	private static addLineNumbers(element: HTMLElement, code: string): void
 
 	/**
+	 * Update the line heights for line numbers to match the highlighted code
+	 * @param element - The code element
+	 * @param lineNumbersWrapper - The line numbers container
+	 * @private
+	 */
+	private static updateLineHeights(element: HTMLElement, lineNumbersWrapper: HTMLElement): void
+
+	/**
 	 * Re-highlight an element with updated content
 	 * @param element - The element to re-highlight
 	 * @param container - The container element
@@ -292,5 +306,33 @@ export default HighlightIt
 declare global {
 	interface Window {
 		HighlightIt: typeof HighlightIt
+	}
+
+	interface HTMLElement {
+		/**
+		 * Stored ResizeObserver for line numbers
+		 * @internal
+		 */
+		_lineNumbersResizeObserver?: ResizeObserver
+
+		/**
+		 * Highlight.js observer for the element
+		 * @internal
+		 */
+		_highlightObserver?: MutationObserver
+	}
+
+	interface HTMLButtonElement {
+		/**
+		 * Stored code content for copy buttons
+		 * @internal
+		 */
+		_currentCode?: string
+
+		/**
+		 * Backup of the click handler
+		 * @internal
+		 */
+		onclickBackup?: (this: GlobalEventHandlers, ev: MouseEvent) => Promise<void>
 	}
 }

@@ -428,37 +428,113 @@ class HighlightIt {
 		const originalElement = this.findOriginalElement(element, container)
 		const elementToWatch = originalElement || element
 		const targetElement = element
+
 		const language =
 			polyfills.dataset.get(element, 'language') ||
 			(element.className.match(/language-(\w+)/) || [])[1] ||
 			null
+
+		let detectedLanguage = null
+		if (!language && autoDetect) {
+			const code = (elementToWatch.querySelector('code') || elementToWatch).textContent.trim()
+			if (code) {
+				const result = this.autoDetectLanguage(code)
+				detectedLanguage = result.language || null
+			}
+		}
+
+		let lastProcessedCode = ''
 
 		const rehighlight = () => {
 			const originalCode = elementToWatch.querySelector('code') || elementToWatch
 			const code = originalCode.textContent.trim()
 			if (!code) return
 
-			if (!language && autoDetect) {
-				const result = this.autoDetectLanguage(code)
-				targetElement.innerHTML = result.value
-				polyfills.classList.add(targetElement, `language-${result.language || 'unknown'}`)
+			if (code === lastProcessedCode) {
+				if (container.classList.contains('highlightit-with-lines')) {
+					const preElement = targetElement.parentElement
+					const lineNumbersWrapper = preElement.querySelector('.highlightit-line-numbers')
+					if (lineNumbersWrapper) {
+						this.updateLineHeights(targetElement, lineNumbersWrapper)
+					}
+				}
+				return
+			}
 
-				if (showLanguage && result.language) {
-					const header = container.querySelector('.highlightit-header')
-					if (header) {
-						const languageLabel = header.querySelector('.highlightit-language')
-						if (languageLabel) {
-							languageLabel.textContent = result.language
+			lastProcessedCode = code
+
+			if (!language && autoDetect) {
+				if (
+					!detectedLanguage ||
+					(showLanguage &&
+						!container.querySelector('.highlightit-header .highlightit-language'))
+				) {
+					const result = this.autoDetectLanguage(code)
+					detectedLanguage = result.language || 'unknown'
+					targetElement.innerHTML = result.value
+					polyfills.classList.add(targetElement, `language-${detectedLanguage}`)
+
+					if (showLanguage && detectedLanguage) {
+						const header = container.querySelector('.highlightit-header')
+						if (header) {
+							const languageLabel = header.querySelector('.highlightit-language')
+							if (languageLabel) {
+								languageLabel.textContent = detectedLanguage
+							} else {
+								const newLanguageLabel = document.createElement('span')
+								newLanguageLabel.className = 'highlightit-language'
+								newLanguageLabel.textContent = detectedLanguage
+								header.insertBefore(newLanguageLabel, header.firstChild)
+							}
 						}
 					}
+				} else {
+					const result = hljs.highlight(code, { language: detectedLanguage })
+					targetElement.innerHTML = result.value
+					polyfills.classList.add(targetElement, `language-${detectedLanguage}`)
 				}
 			} else {
 				this.rehighlightElement(targetElement, container, language, code, showLanguage)
 				polyfills.classList.add(targetElement, `language-${language || 'unknown'}`)
 			}
 
-			if (polyfills.classList.contains(container, 'highlightit-with-lines')) {
-				this.addLineNumbers(targetElement, code)
+			if (container.classList.contains('highlightit-with-lines')) {
+				const preElement = targetElement.parentElement
+				const oldLineNumbers = preElement.querySelector('.highlightit-line-numbers')
+				const oldLines = oldLineNumbers
+					? oldLineNumbers.querySelectorAll('.highlightit-line-number')
+					: null
+
+				if (oldLineNumbers) {
+					const lineCount = code.split('\n').length
+					const oldLineCount = oldLines ? oldLines.length : 0
+
+					if (lineCount !== oldLineCount) {
+						const startLine = parseInt(
+							targetElement.dataset.lineStart || preElement.dataset.lineStart || 1,
+							10
+						)
+
+						while (oldLineNumbers.firstChild) {
+							oldLineNumbers.removeChild(oldLineNumbers.firstChild)
+						}
+
+						const fragment = document.createDocumentFragment()
+						for (let i = 0; i < lineCount; i++) {
+							const span = document.createElement('span')
+							span.className = 'highlightit-line-number'
+							span.textContent = startLine + i
+							fragment.appendChild(span)
+						}
+						oldLineNumbers.appendChild(fragment)
+
+						this.updateLineHeights(targetElement, oldLineNumbers)
+					} else {
+						this.updateLineHeights(targetElement, oldLineNumbers)
+					}
+				} else {
+					this.addLineNumbers(targetElement, code)
+				}
 			}
 		}
 
@@ -558,7 +634,7 @@ class HighlightIt {
 		copyButton.setAttribute('aria-label', 'Copy code')
 		copyButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="highlightit-copy-icon"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="highlightit-check-icon" style="display: none;"><polyline points="20 6 9 17 4 12"></polyline></svg>`
 
-		copyButton.addEventListener('click', async () => {
+		const clickListener = async () => {
 			const codeToCopy = code.trim()
 			const success = await polyfills.copyToClipboard(codeToCopy)
 
@@ -575,7 +651,11 @@ class HighlightIt {
 			} else {
 				console.warn('Failed to copy code')
 			}
-		})
+		}
+
+		copyButton.onclickBackup = clickListener
+		copyButton._currentCode = code.trim()
+		copyButton.addEventListener('click', clickListener)
 
 		return copyButton
 	}
@@ -662,19 +742,35 @@ class HighlightIt {
 		polyfills.classList.add(preElement, 'highlightit-has-line-numbers')
 		preElement.insertBefore(lineNumbersWrapper, preElement.firstChild)
 
-		const resizeObserver = new polyfills.ResizeObserver((entries) => {
-			const element = entries[0].target
-			const codeHeight = element.offsetHeight
-			const renderedLineCount = element.innerHTML.split('\n').length
-			const lineHeight = codeHeight / renderedLineCount
+		this.updateLineHeights(element, lineNumbersWrapper)
 
-			const lineNumbers = lineNumbersWrapper.querySelectorAll('.highlightit-line-number')
-			lineNumbers.forEach((lineNumber) => {
-				lineNumber.style.height = `${lineHeight}px`
-			})
+		const resizeObserver = new polyfills.ResizeObserver(() => {
+			this.updateLineHeights(element, lineNumbersWrapper)
 		})
 
 		resizeObserver.observe(element)
+
+		element._lineNumbersResizeObserver = resizeObserver
+	}
+
+	/**
+	 * Update the line heights for line numbers to match the highlighted code
+	 * @param {HTMLElement} element - The code element
+	 * @param {HTMLElement} lineNumbersWrapper - The line numbers container
+	 * @private
+	 */
+	static updateLineHeights(element, lineNumbersWrapper) {
+		const codeHeight = element.offsetHeight
+		const lineNumbers = lineNumbersWrapper.querySelectorAll('.highlightit-line-number')
+		const lineCount = lineNumbers.length
+
+		if (lineCount === 0) return
+
+		const lineHeight = codeHeight / lineCount
+
+		lineNumbers.forEach((lineNumber) => {
+			lineNumber.style.height = `${lineHeight}px`
+		})
 	}
 
 	/**
@@ -708,28 +804,80 @@ class HighlightIt {
 
 			if (withLines) {
 				const oldLineNumbers = container.querySelector('.highlightit-line-numbers')
+				const oldLines = oldLineNumbers
+					? oldLineNumbers.querySelectorAll('.highlightit-line-number')
+					: null
 
-				let lineStart = undefined
-				if (element.dataset && element.dataset.lineStart !== undefined) {
-					lineStart = element.dataset.lineStart
-				} else if (container.dataset && container.dataset.lineStart !== undefined) {
-					lineStart = container.dataset.lineStart
+				const lineCount = cleanedCode.split('\n').length
+				const oldLineCount = oldLines ? oldLines.length : 0
+
+				let lineStart = parseInt(
+					element.dataset.lineStart || container.dataset.lineStart || 1,
+					10
+				)
+
+				if (oldLineNumbers && lineCount !== oldLineCount) {
+					while (oldLineNumbers.firstChild) {
+						oldLineNumbers.removeChild(oldLineNumbers.firstChild)
+					}
+
+					const fragment = document.createDocumentFragment()
+					for (let i = 0; i < lineCount; i++) {
+						const span = document.createElement('span')
+						span.className = 'highlightit-line-number'
+						span.textContent = lineStart + i
+						fragment.appendChild(span)
+					}
+					oldLineNumbers.appendChild(fragment)
+
+					this.updateLineHeights(element, oldLineNumbers)
+				} else {
+					this.addLineNumbers(element, cleanedCode)
 				}
-
-				if (lineStart !== undefined) {
-					element.dataset.lineStart = lineStart
-				}
-
-				oldLineNumbers?.remove()
-				this.addLineNumbers(element, cleanedCode)
 			}
 
-			const copyButton = container.querySelector(
+			const copyButtons = container.querySelectorAll(
 				'.highlightit-copy, .highlightit-floating-copy'
 			)
-			if (copyButton) {
-				copyButton.replaceWith(this.createCopyButton(cleanedCode))
-			}
+
+			copyButtons.forEach((copyButton) => {
+				const currentCode = copyButton._currentCode
+
+				if (currentCode !== cleanedCode) {
+					const clickListener = copyButton.onclickBackup || copyButton.onclick
+
+					if (clickListener) {
+						copyButton.removeEventListener('click', clickListener)
+					}
+
+					const newClickListener = async () => {
+						const codeToCopy = cleanedCode
+						const success = await polyfills.copyToClipboard(codeToCopy)
+
+						if (success) {
+							polyfills.classList.add(copyButton, 'copied')
+							copyButton.querySelector('.highlightit-copy-icon').style.display =
+								'none'
+							copyButton.querySelector('.highlightit-check-icon').style.display =
+								'block'
+
+							setTimeout(() => {
+								polyfills.classList.remove(copyButton, 'copied')
+								copyButton.querySelector('.highlightit-copy-icon').style.display =
+									'block'
+								copyButton.querySelector('.highlightit-check-icon').style.display =
+									'none'
+							}, 2000)
+						} else {
+							console.warn('Failed to copy code')
+						}
+					}
+
+					copyButton.onclickBackup = newClickListener
+					copyButton._currentCode = cleanedCode
+					copyButton.addEventListener('click', newClickListener)
+				}
+			})
 
 			if (showLanguage && language) {
 				const header = container.querySelector('.highlightit-header')

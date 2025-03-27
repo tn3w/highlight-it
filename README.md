@@ -30,7 +30,7 @@ Add highlight-it using this script:
 ```html
 <script
 	src="https://cdn.jsdelivr.net/npm/highlight-it@0.1.17/dist/highlight-it-min.js"
-	integrity="sha512-nqT+I2cHzRacygyWbzKSJn972vTXiYMot3c9zBfP7l/O4r/Bd+kxb0Hgi+QfVt1/Nn8o1J5LK8x1MXBY54T8UQ=="
+	integrity="sha512-dEW940fYnXQB+CQI+FTqdJSc/Lj+HlYw2h6VpOAFTlQ5h8PT6kOmOTaFMdJUduDZE829pc30VP0dJdGseAHxLA=="
 	crossorigin="anonymous"
 ></script>
 <script>
