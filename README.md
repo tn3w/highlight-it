@@ -28,11 +28,7 @@ if __name__ == "__main__":
 Add highlight-it using this script:
 
 ```html
-<script
-	src="https://cdn.jsdelivr.net/npm/highlight-it@0.2.2/dist/highlight-it-min.js"
-	integrity="sha512-142rN09an/PHml1OJG65TsHpUSvUreSg3bgjMdJliDcjYn79VVgQpVNZmaOEpUeDfKWTx0WRApB8Bh217XWzlQ=="
-	crossorigin="anonymous"
-></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight-it@0.2.4/dist/highlight-it-min.js"></script>
 <script>
 	window.addEventListener('load', () => {
 		HighlightIt.init();
@@ -88,6 +84,7 @@ HighlightIt supports the following data attributes to customize the appearance a
 | `data-with-lines`  | Adds line numbers to the code block                                             | `<div class="highlight-it" data-with-lines>const foo = 'bar';</div>`            |
 | `data-line-start`  | Sets the starting line number for the code block and enables line numbers       | `<div class="highlight-it" data-line-start="10">const foo = 'bar';</div>`       |
 | `data-with-share`  | Adds a share button to the code block and individual lines                      | `<div class="highlight-it" data-with-share>const foo = 'bar';</div>`            |
+| `data-with-download` | Adds a download button to the code block                                      | `<div class="highlight-it" data-with-download>const foo = 'bar';</div>`            |
 | `data-no-header`   | Removes the header (hides language label but keeps copy button as floating)     | `<div class="highlight-it" data-no-header>const foo = 'bar';</div>`             |
 | `data-no-copy`     | Hides the copy button                                                           | `<div class="highlight-it" data-no-copy>const foo = 'bar';</div>`               |
 | `data-with-reload` | Enables live updates - code will be rehighlighted when content changes          | `<div class="highlight-it" data-with-reload data-language="javascript"></div>`  |
@@ -131,6 +128,18 @@ const greeting = 'Hello, world!';
 console.log(greeting);
 </div>
 
+<!-- With download button -->
+<div class="highlight-it" data-language="javascript" data-with-download>
+const greeting = 'Hello, world!';
+console.log(greeting);
+</div>
+
+<!-- With download button and specific filename -->
+<div class="highlight-it" data-language="javascript" data-with-download data-filename="app.js">
+const greeting = 'Hello, world!';
+console.log(greeting);
+</div>
+
 <!-- Dark theme without header -->
 <div class="highlight-it" data-language="css" data-theme="dark" data-no-header>
 .container {
@@ -162,6 +171,7 @@ HighlightIt.init({
 	addHeader: true, // Add header section to code blocks
 	addLines: false, // Add line numbers to code blocks
 	addShare: true, // Add share button to code blocks
+	addDownload: true, // Add download button to code blocks
 	theme: 'auto', // Global theme (light, dark, auto)
 	debounceTime: 40 // Debounce time in ms for live updates (lower values = more responsive)
 })
@@ -188,7 +198,9 @@ HighlightIt.highlight(codeBlock, {
 	addHeader: true,
 	addCopyButton: true,
 	addLines: false,
-	addShare: false
+	addShare: false,
+	addDownload: false,
+	filename: 'app.js'
 })
 
 // HighlightIt will automatically rehighlight the code

@@ -50,6 +50,12 @@ export interface HighlightItOptions {
 	addShare?: boolean
 
 	/**
+	 * Whether to add download button to code blocks
+	 * @default false
+	 */
+	addDownload?: boolean
+
+	/**
 	 * Theme to use ('light', 'dark', or 'auto')
 	 * @default 'auto'
 	 */
@@ -109,6 +115,17 @@ export interface HighlightElementOptions {
 	addShare?: boolean
 
 	/**
+	 * Whether to add download button
+	 * @default false
+	 */
+	addDownload?: boolean
+
+	/**
+	 * Filename to use for the download button and language detection
+	 */
+	filename?: string
+
+	/**
 	 * The language to use for syntax highlighting
 	 */
 	language?: string
@@ -129,6 +146,24 @@ export interface HighlightElementOptions {
  * HighlightIt class for syntax highlighting
  */
 declare class HighlightIt {
+	/**
+	 * Whether the instance has been initialized
+	 * @internal
+	 */
+	private static _initialized: boolean
+
+	/**
+	 * Debounce time for live updates in milliseconds
+	 * @internal
+	 */
+	private static debounceTime: number
+
+	/**
+	 * Whether the device is a touch device
+	 * @internal
+	 */
+	private static isTouchDevice: boolean
+
 	/**
 	 * Initialize HighlightIt by finding and highlighting all matching elements
 	 * @param options - Configuration options
@@ -206,6 +241,29 @@ declare class HighlightIt {
 	): void
 
 	/**
+	 * Process an element for highlighting, handling both single and nested element structures
+	 * @param element - The element to process
+	 * @param autoDetect - Whether to auto-detect language
+	 * @param addCopyButton - Whether to add a copy button
+	 * @param showLanguage - Whether to show the language label
+	 * @param addHeader - Whether to add header section
+	 * @param addLines - Whether to add line numbers
+	 * @param addShare - Whether to add share button
+	 * @param addDownload - Whether to add download button
+	 * @private
+	 */
+	private static processElement(
+		element: HTMLElement,
+		autoDetect: boolean,
+		addCopyButton: boolean,
+		showLanguage: boolean,
+		addHeader: boolean,
+		addLines: boolean,
+		addShare: boolean,
+		addDownload: boolean
+	): void
+
+	/**
 	 * Initialize sharing functionality
 	 */
 	static initSharing(): void
@@ -218,36 +276,29 @@ declare class HighlightIt {
 	private static applyGlobalTheme(theme: string): void
 
 	/**
-	 * Process an element for highlighting
-	 * @param element - The element to process
-	 * @param autoDetect - Whether to auto-detect language
-	 * @param addCopyButton - Whether to add a copy button
-	 * @param showLanguage - Whether to show the language label
-	 * @param addHeader - Whether to add header section
-	 * @param addLines - Whether to add line numbers
-	 * @param addShare - Whether to add share button
-	 * @private
-	 */
-	private static processElement(
-		element: HTMLElement,
-		autoDetect: boolean,
-		addCopyButton: boolean,
-		showLanguage: boolean,
-		addHeader: boolean,
-		addLines: boolean,
-		addShare: boolean
-	): void
-
-	/**
 	 * Highlight a single element
-	 * @param element - The element to highlight
+	 * @param element - The code element to highlight
 	 * @param autoDetect - Whether to auto-detect language
 	 * @param addCopyButton - Whether to add a copy button
 	 * @param showLanguage - Whether to show the language label
 	 * @param addHeader - Whether to add header section
 	 * @param addLines - Whether to add line numbers
 	 * @param addShare - Whether to add share button
+	 * @param addDownload - Whether to add download button
 	 * @private
+	 *
+	 * The element can have various data attributes:
+	 * - data-language: The programming language for syntax highlighting
+	 * - data-filename: Filename to display (also used to detect language)
+	 * - data-theme: Override global theme for this element ('light', 'dark', 'auto')
+	 * - data-with-lines: Add line numbers to the code block
+	 * - data-line-start: Set the starting line number (default is 1, can be positive or negative)
+	 * - data-no-header: Hide the header (language label and copy button)
+	 * - data-no-copy: Hide the copy button
+	 * - data-with-reload: Enable live updates - code will be rehighlighted automatically when content changes
+	 * - data-with-share: Add a share button that copies the URL with the element ID as the fragment
+	 * - data-with-download: Add a download button that downloads the code as a file
+	 * - data-filename: Used for the download feature to set the filename for downloaded code
 	 */
 	private static highlightElement(
 		element: HTMLElement,
@@ -256,7 +307,8 @@ declare class HighlightIt {
 		showLanguage: boolean,
 		addHeader: boolean,
 		addLines: boolean,
-		addShare: boolean
+		addShare: boolean,
+		addDownload: boolean
 	): void
 
 	/**
@@ -277,6 +329,26 @@ declare class HighlightIt {
 	): void
 
 	/**
+	 * Intelligently update line numbers for live updates, preserving existing DOM elements
+	 * @param lineNumbersWrapper - The line numbers wrapper element
+	 * @param newLineCount - The new line count
+	 * @param oldLineCount - The old line count
+	 * @param startLine - The starting line number
+	 * @param withShare - Whether share buttons should be included
+	 * @param blockId - The block ID for share links
+	 * @param container - The container element
+	 */
+	static updateLineNumbersForLiveUpdates(
+		lineNumbersWrapper: HTMLElement,
+		newLineCount: number,
+		oldLineCount: number,
+		startLine: number,
+		withShare: boolean,
+		blockId: string,
+		container: HTMLElement
+	): void
+
+	/**
 	 * Create a styled container for code block
 	 * @param element - The code element to wrap
 	 * @returns The container element
@@ -291,6 +363,7 @@ declare class HighlightIt {
 	 * @param addCopyButton - Whether to add a copy button
 	 * @param showLanguage - Whether to show the language label
 	 * @param addShareButton - Whether to add a share button
+	 * @param addDownloadButton - Whether to add a download button
 	 * @param container - The container element (for share button)
 	 * @returns The header element
 	 * @private
@@ -301,6 +374,7 @@ declare class HighlightIt {
 		addCopyButton: boolean,
 		showLanguage: boolean,
 		addShareButton: boolean,
+		addDownloadButton: boolean,
 		container: HTMLElement
 	): HTMLElement
 
@@ -313,9 +387,24 @@ declare class HighlightIt {
 	private static createCopyButton(code: string): HTMLElement
 
 	/**
+	 * Create download button element
+	 * @param code - The code to download
+	 * @param language - The language of the code (for filename extension)
+	 * @param container - The container element (for filename attribute)
+	 * @returns The download button element
+	 * @private
+	 */
+	private static createDownloadButton(
+		code: string,
+		language: string | null,
+		container: HTMLElement
+	): HTMLElement
+
+	/**
 	 * Create floating buttons for no-header mode
 	 * @param code - The code to copy
 	 * @param withShare - Whether to add a share button
+	 * @param withDownload - Whether to add a download button
 	 * @param container - The container element for share functionality
 	 * @returns The floating buttons container
 	 * @private
@@ -323,6 +412,7 @@ declare class HighlightIt {
 	private static createFloatingButtons(
 		code: string,
 		withShare?: boolean,
+		withDownload?: boolean,
 		container?: HTMLElement | null
 	): HTMLElement
 
@@ -337,7 +427,7 @@ declare class HighlightIt {
 	/**
 	 * Auto-detect language with priority given to popular languages
 	 * @param code - The code to detect the language of
-	 * @returns The highlight.js result object
+	 * @returns The highlight.js result object with language and value properties
 	 * @private
 	 */
 	private static autoDetectLanguage(code: string): { language: string; value: string }
@@ -357,14 +447,6 @@ declare class HighlightIt {
 	 * @private
 	 */
 	private static addLineNumbers(element: HTMLElement, code: string): void
-
-	/**
-	 * Update the line heights for line numbers to match the highlighted code
-	 * @param element - The code element
-	 * @param lineNumbersWrapper - The line numbers container
-	 * @private
-	 */
-	private static updateLineHeights(element: HTMLElement, lineNumbersWrapper: HTMLElement): void
 
 	/**
 	 * Updates a code block with new content
@@ -404,33 +486,6 @@ declare class HighlightIt {
 	static setupLineShareButtonHandler(button: HTMLElement, container: HTMLElement): void
 
 	/**
-	 * Intelligently update line numbers for live updates, preserving existing DOM elements
-	 * @param lineNumbersWrapper The line numbers wrapper element
-	 * @param newLineCount The new line count
-	 * @param oldLineCount The old line count
-	 * @param startLine The starting line number
-	 * @param withShare Whether share buttons should be included
-	 * @param blockId The block ID for share links
-	 * @param container The container element
-	 *
-	 * @remarks
-	 * This method optimizes updates to line numbers when content changes:
-	 * - If line count is unchanged, it just updates text content and event handlers
-	 * - If lines are added, it only creates new line number elements
-	 * - If lines are removed, it removes excess line number elements
-	 * This approach prevents unnecessary DOM operations when lines are added or removed.
-	 */
-	static updateLineNumbersForLiveUpdates(
-		lineNumbersWrapper: HTMLElement,
-		newLineCount: number,
-		oldLineCount: number,
-		startLine: number,
-		withShare: boolean,
-		blockId: string,
-		container: HTMLElement
-	): void
-
-	/**
 	 * Find the original element for live updates
 	 * @param element - The code element
 	 * @param container - The container element
@@ -441,6 +496,14 @@ declare class HighlightIt {
 		element: HTMLElement,
 		container: HTMLElement | null
 	): HTMLElement | null
+
+	/**
+	 * Get file extension from language name
+	 * @param language - The language to convert to file extension
+	 * @returns The file extension for the language
+	 * @private
+	 */
+	private static getLanguageFileExtension(language: string): string
 }
 
 export default HighlightIt
@@ -470,6 +533,12 @@ declare global {
 		 * @internal
 		 */
 		_currentCode?: string
+
+		/**
+		 * Stored code content for download buttons
+		 * @internal
+		 */
+		_code?: string
 
 		/**
 		 * Stored block ID for share buttons

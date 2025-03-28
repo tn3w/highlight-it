@@ -263,7 +263,8 @@
 
 .highlightit-copy-icon,
 .highlightit-check-icon,
-.highlightit-share-icon {
+.highlightit-share-icon,
+.highlightit-download-icon {
 	width: 16px;
 	height: 16px;
 	vertical-align: middle;

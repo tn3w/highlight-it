@@ -25,6 +25,7 @@ class HighlightIt {
 	 * @param {boolean} [options.addHeader=true] - Whether to add the header section to code blocks
 	 * @param {boolean} [options.addLines=false] - Whether to add line numbers to code blocks
 	 * @param {boolean} [options.addShare=false] - Whether to add share button to code blocks
+	 * @param {boolean} [options.addDownload=false] - Whether to add download button to code blocks
 	 * @param {string} [options.theme='auto'] - Theme to use ('light', 'dark', or 'auto')
 	 * @param {number} [options.debounceTime=50] - Debounce time in ms for live updates (lower values = more responsive)
 	 */
@@ -37,6 +38,7 @@ class HighlightIt {
 			addHeader = true,
 			addLines = false,
 			addShare = false,
+			addDownload = false,
 			theme = 'auto',
 			debounceTime = 50
 		} = options
@@ -63,7 +65,8 @@ class HighlightIt {
 					showLanguage,
 					addHeader,
 					addLines,
-					addShare
+					addShare,
+					addDownload
 				)
 			}
 			if (endIndex < elements.length) {
@@ -315,6 +318,7 @@ class HighlightIt {
 	 * @param {boolean} addHeader - Whether to add header section
 	 * @param {boolean} addLines - Whether to add line numbers
 	 * @param {boolean} addShare - Whether to add share button
+	 * @param {boolean} addDownload - Whether to add download button
 	 * @private
 	 */
 	static processElement(
@@ -324,7 +328,8 @@ class HighlightIt {
 		showLanguage,
 		addHeader,
 		addLines,
-		addShare
+		addShare,
+		addDownload
 	) {
 		let codeElement
 		let preElement
@@ -378,6 +383,14 @@ class HighlightIt {
 					originalCodeElement.dataset.withShare = element.dataset.withShare
 				}
 
+				if (element.dataset.withDownload !== undefined) {
+					originalCodeElement.dataset.withDownload = element.dataset.withDownload
+				}
+
+				if (element.dataset.filename !== undefined) {
+					originalCodeElement.dataset.filename = element.dataset.filename
+				}
+
 				originalElement.appendChild(originalCodeElement)
 
 				preElement.dataset.linkedOriginal = uniqueId
@@ -421,6 +434,14 @@ class HighlightIt {
 					originalCodeElement.dataset.withShare = element.dataset.withShare
 				}
 
+				if (element.dataset.withDownload !== undefined) {
+					originalCodeElement.dataset.withDownload = element.dataset.withDownload
+				}
+
+				if (element.dataset.filename !== undefined) {
+					originalCodeElement.dataset.filename = element.dataset.filename
+				}
+
 				element.parentNode.insertBefore(originalElement, element)
 
 				element.setAttribute('data-linked-original', uniqueId)
@@ -455,6 +476,10 @@ class HighlightIt {
 					container.classList.add('highlightit-with-lines')
 				}
 
+				if (key === 'withDownload') {
+					container.classList.add('highlightit-with-download')
+				}
+
 				if (key === 'noHeader') {
 					container.classList.add('highlightit-no-header')
 				}
@@ -476,6 +501,11 @@ class HighlightIt {
 			container.classList.add('highlightit-with-lines')
 		}
 
+		if (addDownload || element.dataset.withDownload !== undefined) {
+			const container = this.createCodeContainer(element)
+			container.classList.add('highlightit-with-download')
+		}
+
 		this.highlightElement(
 			element,
 			autoDetect,
@@ -483,7 +513,8 @@ class HighlightIt {
 			showLanguage,
 			addHeader,
 			addLines,
-			addShare
+			addShare,
+			addDownload
 		)
 	}
 
@@ -515,6 +546,7 @@ class HighlightIt {
 	 * @param {boolean} addHeader - Whether to add header section
 	 * @param {boolean} addLines - Whether to add line numbers
 	 * @param {boolean} addShare - Whether to add share button
+	 * @param {boolean} addDownload - Whether to add download button
 	 * @private
 	 *
 	 * The element can have various data attributes:
@@ -527,6 +559,8 @@ class HighlightIt {
 	 * - data-no-copy: Hide the copy button
 	 * - data-with-reload: Enable live updates - code will be rehighlighted automatically when content changes
 	 * - data-with-share: Add a share button that copies the URL with the element ID as the fragment
+	 * - data-with-download: Add a download button that downloads the code as a file
+	 * - data-filename: Used for the download feature to set the filename for downloaded code
 	 */
 	static highlightElement(
 		element,
@@ -535,7 +569,8 @@ class HighlightIt {
 		showLanguage,
 		addHeader,
 		addLines,
-		addShare
+		addShare,
+		addDownload
 	) {
 		const container = this.createCodeContainer(element)
 
@@ -563,6 +598,10 @@ class HighlightIt {
 			addShare ||
 			elementDataset.withShare !== undefined ||
 			containerDataset.withShare !== undefined
+		const withDownload =
+			addDownload ||
+			elementDataset.withDownload !== undefined ||
+			containerDataset.withDownload !== undefined
 
 		const shouldAddCopyButton = addCopyButton && !noCopy
 
@@ -607,20 +646,30 @@ class HighlightIt {
 			}
 		}
 
-		if ((showLanguage || shouldAddCopyButton || withShare) && addHeader && !noHeader) {
+		if (
+			(showLanguage || shouldAddCopyButton || withShare || withDownload) &&
+			addHeader &&
+			!noHeader
+		) {
 			const header = this.createCodeHeader(
 				displayLabel,
 				code,
 				shouldAddCopyButton,
 				showLanguage,
 				withShare,
+				withDownload,
 				container
 			)
 			container.prepend(header)
 		} else if (noHeader) {
 			container.classList.add('highlightit-no-header')
-			if (shouldAddCopyButton || withShare) {
-				const floatingBtns = this.createFloatingButtons(code, withShare, container)
+			if (shouldAddCopyButton || withShare || withDownload) {
+				const floatingBtns = this.createFloatingButtons(
+					code,
+					withShare,
+					withDownload,
+					container
+				)
 				container.appendChild(floatingBtns)
 			}
 		}
@@ -648,13 +697,8 @@ class HighlightIt {
 				const header = container.querySelector('.highlightit-header')
 				if (header) {
 					const languageLabel = header.querySelector('.highlightit-language')
-					if (!languageLabel && result.language) {
-						const newLanguageLabel = document.createElement('span')
-						newLanguageLabel.className = 'highlightit-language'
-						newLanguageLabel.textContent = result.language
-						header.insertBefore(newLanguageLabel, header.firstChild)
-					} else if (languageLabel && result.language) {
-						languageLabel.textContent = result.language
+					if (languageLabel) {
+						languageLabel.textContent = displayLabel || language
 					}
 				}
 			}
@@ -1054,9 +1098,9 @@ class HighlightIt {
 	 * @param {boolean} addCopyButton - Whether to add a copy button
 	 * @param {boolean} showLanguage - Whether to show the language label
 	 * @param {boolean} addShareButton - Whether to add a share button
+	 * @param {boolean} addDownloadButton - Whether to add a download button
 	 * @param {HTMLElement} container - The container element (for share button)
 	 * @returns {HTMLElement} - The header element
-	 * @private
 	 */
 	static createCodeHeader(
 		displayLabel,
@@ -1064,16 +1108,19 @@ class HighlightIt {
 		addCopyButton,
 		showLanguage,
 		addShareButton,
+		addDownloadButton,
 		container
 	) {
 		const header = document.createElement('div')
 		header.className = 'highlightit-header'
 
 		if (showLanguage && displayLabel) {
-			const labelElement = document.createElement('span')
-			labelElement.className = 'highlightit-language'
-			labelElement.textContent = displayLabel
-			header.appendChild(labelElement)
+			const languageLabel = document.createElement('span')
+			languageLabel.className = 'highlightit-language'
+			languageLabel.textContent = displayLabel
+			header.appendChild(languageLabel)
+		} else {
+			header.style.justifyContent = 'flex-end'
 		}
 
 		const buttonContainer = document.createElement('div')
@@ -1084,6 +1131,11 @@ class HighlightIt {
 		if (addCopyButton) {
 			const copyButton = this.createCopyButton(code)
 			buttonContainer.appendChild(copyButton)
+		}
+
+		if (addDownloadButton) {
+			const downloadButton = this.createDownloadButton(code, displayLabel, container)
+			buttonContainer.appendChild(downloadButton)
 		}
 
 		if (addShareButton) {
@@ -1115,13 +1167,18 @@ class HighlightIt {
 
 			if (success) {
 				polyfills.classList.add(copyButton, 'copied')
-				copyButton.querySelector('.highlightit-copy-icon').style.display = 'none'
-				copyButton.querySelector('.highlightit-check-icon').style.display = 'block'
+
+				const copyIcon = copyButton.querySelector('.highlightit-copy-icon')
+				const checkIcon = copyButton.querySelector('.highlightit-check-icon')
+
+				if (copyIcon) copyIcon.style.display = 'none'
+				if (checkIcon) checkIcon.style.display = 'block'
 
 				setTimeout(() => {
 					polyfills.classList.remove(copyButton, 'copied')
-					copyButton.querySelector('.highlightit-copy-icon').style.display = 'block'
-					copyButton.querySelector('.highlightit-check-icon').style.display = 'none'
+
+					if (copyIcon) copyIcon.style.display = 'block'
+					if (checkIcon) checkIcon.style.display = 'none'
 				}, 2000)
 			} else {
 				console.warn('Failed to copy code')
@@ -1136,30 +1193,139 @@ class HighlightIt {
 	}
 
 	/**
+	 * Create download button element
+	 * @param {string} code - The code to download
+	 * @param {string} language - The language of the code (for filename extension)
+	 * @param {HTMLElement} container - The container element (for filename attribute)
+	 * @returns {HTMLElement} - The download button element
+	 * @private
+	 */
+	static createDownloadButton(code, language, container) {
+		const downloadButton = document.createElement('button')
+		downloadButton.className = 'highlightit-button highlightit-download'
+		downloadButton.setAttribute('aria-label', 'Download code')
+		downloadButton.innerHTML = `${cache.svgIcons.download}${cache.svgIcons.check.replace('highlightit-check-icon', 'highlightit-check-icon" style="display: none;')}`
+
+		let filename = container && container.dataset && container.dataset.filename
+
+		if (!filename) {
+			const extension = language ? this.getLanguageFileExtension(language) : 'txt'
+			filename = `code.${extension}`
+		}
+
+		const clickListener = async () => {
+			const codeToDownload = code.trim()
+			const success = polyfills.downloadFile(filename, codeToDownload)
+
+			if (success) {
+				polyfills.classList.add(downloadButton, 'copied')
+				const downloadIcon = downloadButton.querySelector('.highlightit-download-icon')
+				const checkIcon = downloadButton.querySelector('.highlightit-check-icon')
+
+				if (downloadIcon) downloadIcon.style.display = 'none'
+				if (checkIcon) checkIcon.style.display = 'block'
+
+				setTimeout(() => {
+					polyfills.classList.remove(downloadButton, 'copied')
+					if (downloadIcon) downloadIcon.style.display = 'block'
+					if (checkIcon) checkIcon.style.display = 'none'
+				}, 2000)
+			} else {
+				console.warn('Failed to download code')
+			}
+		}
+
+		downloadButton.addEventListener('click', clickListener)
+		downloadButton.onclickBackup = clickListener
+		downloadButton._code = code
+
+		return downloadButton
+	}
+
+	/**
 	 * Create floating buttons for no-header mode
 	 * @param {string} code - The code to copy
 	 * @param {boolean} withShare - Whether to add a share button
+	 * @param {boolean} withDownload - Whether to add a download button
 	 * @param {HTMLElement} container - The container element for share functionality
-	 * @returns {HTMLElement} - The container with floating buttons
+	 * @returns {HTMLElement} - The floating buttons container
 	 * @private
 	 */
-	static createFloatingButtons(code, withShare = false, container = null) {
+	static createFloatingButtons(code, withShare = false, withDownload = false, container = null) {
 		const buttonsContainer = document.createElement('div')
 		buttonsContainer.className = 'highlightit-floating-buttons'
 
-		const copyButton = this.createCopyButton(code)
-		copyButton.className = 'highlightit-button highlightit-copy highlightit-floating'
+		const copyButton = document.createElement('button')
+		copyButton.className = 'highlightit-button highlightit-floating highlightit-copy'
+		copyButton.setAttribute('aria-label', 'Copy code')
+		copyButton.innerHTML = cache.svgIcons.copy
 
-		if (this.isTouchDevice) {
-			copyButton.style.opacity = '1'
-		}
+		copyButton.addEventListener('click', async () => {
+			const success = await polyfills.copyToClipboard(code.trim())
+
+			if (success) {
+				polyfills.classList.add(copyButton, 'copied')
+				copyButton.innerHTML = cache.svgIcons.check
+
+				setTimeout(() => {
+					polyfills.classList.remove(copyButton, 'copied')
+					copyButton.innerHTML = cache.svgIcons.copy
+				}, 2000)
+			}
+		})
 
 		buttonsContainer.appendChild(copyButton)
+
+		if (withDownload && container) {
+			const downloadButton = document.createElement('button')
+			downloadButton.className =
+				'highlightit-button highlightit-floating highlightit-download'
+			downloadButton.setAttribute('aria-label', 'Download code')
+			downloadButton.innerHTML = `${cache.svgIcons.download}${cache.svgIcons.check.replace('highlightit-check-icon', 'highlightit-check-icon" style="display: none;')}`
+
+			let filename = container && container.dataset && container.dataset.filename
+			let codeLanguage =
+				container.querySelector('code') &&
+				(container.querySelector('code').dataset.language ||
+					(container.querySelector('code').className.match(/language-(\w+)/) || [])[1])
+
+			if (!filename) {
+				const extension = codeLanguage ? this.getLanguageFileExtension(codeLanguage) : 'txt'
+				filename = `code.${extension}`
+			}
+
+			const clickListener = () => {
+				const success = polyfills.downloadFile(filename, code.trim())
+
+				if (success) {
+					polyfills.classList.add(downloadButton, 'copied')
+
+					const downloadIcon = downloadButton.querySelector('.highlightit-download-icon')
+					const checkIcon = downloadButton.querySelector('.highlightit-check-icon')
+
+					if (downloadIcon) downloadIcon.style.display = 'none'
+					if (checkIcon) checkIcon.style.display = 'block'
+
+					setTimeout(() => {
+						polyfills.classList.remove(downloadButton, 'copied')
+
+						if (downloadIcon) downloadIcon.style.display = 'block'
+						if (checkIcon) checkIcon.style.display = 'none'
+					}, 2000)
+				}
+			}
+
+			downloadButton.addEventListener('click', clickListener)
+			downloadButton.onclickBackup = clickListener
+			downloadButton._code = code.trim()
+
+			buttonsContainer.appendChild(downloadButton)
+		}
 
 		if (withShare && container) {
 			;(async () => {
 				const shareButton = await this.createShareButton(code, container)
-				shareButton.className = 'highlightit-button highlightit-share highlightit-floating'
+				shareButton.className = 'highlightit-button highlightit-floating highlightit-share'
 
 				if (this.isTouchDevice) {
 					shareButton.style.opacity = '1'
@@ -1508,17 +1674,18 @@ class HighlightIt {
 
 						if (success) {
 							polyfills.classList.add(copyButton, 'copied')
-							copyButton.querySelector('.highlightit-copy-icon').style.display =
-								'none'
-							copyButton.querySelector('.highlightit-check-icon').style.display =
-								'block'
+
+							const copyIcon = copyButton.querySelector('.highlightit-copy-icon')
+							const checkIcon = copyButton.querySelector('.highlightit-check-icon')
+
+							if (copyIcon) copyIcon.style.display = 'none'
+							if (checkIcon) checkIcon.style.display = 'block'
 
 							setTimeout(() => {
 								polyfills.classList.remove(copyButton, 'copied')
-								copyButton.querySelector('.highlightit-copy-icon').style.display =
-									'block'
-								copyButton.querySelector('.highlightit-check-icon').style.display =
-									'none'
+
+								if (copyIcon) copyIcon.style.display = 'block'
+								if (checkIcon) checkIcon.style.display = 'none'
 							}, 2000)
 						} else {
 							console.warn('Failed to copy code')
@@ -1528,6 +1695,60 @@ class HighlightIt {
 					copyButton.onclickBackup = newClickListener
 					copyButton._currentCode = cleanedCode
 					copyButton.addEventListener('click', newClickListener)
+				}
+			})
+
+			const downloadButtons = container.querySelectorAll('.highlightit-download')
+			downloadButtons.forEach((downloadButton) => {
+				const currentCode = downloadButton._code
+
+				if (currentCode !== cleanedCode) {
+					const clickListener = downloadButton.onclickBackup || downloadButton.onclick
+
+					if (clickListener) {
+						downloadButton.removeEventListener('click', clickListener)
+					}
+
+					let filename = container && container.dataset && container.dataset.filename
+					let codeLanguage =
+						container.querySelector('code') &&
+						(container.querySelector('code').dataset.language ||
+							(container.querySelector('code').className.match(/language-(\w+)/) ||
+								[])[1])
+					if (!filename) {
+						const extension = codeLanguage
+							? this.getLanguageFileExtension(codeLanguage)
+							: 'txt'
+						filename = `code.${extension}`
+					}
+
+					const newClickListener = () => {
+						const success = polyfills.downloadFile(filename, cleanedCode.trim())
+
+						if (success) {
+							polyfills.classList.add(downloadButton, 'copied')
+
+							const downloadIcon = downloadButton.querySelector(
+								'.highlightit-download-icon'
+							)
+							const checkIcon =
+								downloadButton.querySelector('.highlightit-check-icon')
+
+							if (downloadIcon) downloadIcon.style.display = 'none'
+							if (checkIcon) checkIcon.style.display = 'block'
+
+							setTimeout(() => {
+								polyfills.classList.remove(downloadButton, 'copied')
+
+								if (downloadIcon) downloadIcon.style.display = 'block'
+								if (checkIcon) checkIcon.style.display = 'none'
+							}, 2000)
+						}
+					}
+
+					downloadButton.onclickBackup = newClickListener
+					downloadButton._code = cleanedCode
+					downloadButton.addEventListener('click', newClickListener)
 				}
 			})
 
@@ -1609,11 +1830,174 @@ class HighlightIt {
 
 			const floatingBtnsContainer = container.querySelector('.highlightit-floating-buttons')
 			if (floatingBtnsContainer && container.classList.contains('highlightit-no-header')) {
-				container.removeChild(floatingBtnsContainer)
+				const floatingCopyBtn = floatingBtnsContainer.querySelector('.highlightit-copy')
+				if (floatingCopyBtn) {
+					const currentCode = floatingCopyBtn._currentCode
+
+					if (currentCode !== cleanedCode) {
+						const clickListener = floatingCopyBtn.onclick
+
+						if (clickListener) {
+							floatingCopyBtn.removeEventListener('click', clickListener)
+						}
+
+						const newClickListener = async () => {
+							const success = await polyfills.copyToClipboard(cleanedCode.trim())
+
+							if (success) {
+								polyfills.classList.add(floatingCopyBtn, 'copied')
+								floatingCopyBtn.innerHTML = cache.svgIcons.check
+
+								setTimeout(() => {
+									polyfills.classList.remove(floatingCopyBtn, 'copied')
+									floatingCopyBtn.innerHTML = cache.svgIcons.copy
+								}, 2000)
+							}
+						}
+
+						floatingCopyBtn._currentCode = cleanedCode
+						floatingCopyBtn.addEventListener('click', newClickListener)
+					}
+				}
+
+				const floatingDownloadBtn =
+					floatingBtnsContainer.querySelector('.highlightit-download')
+				if (floatingDownloadBtn) {
+					const currentCode = floatingDownloadBtn._code
+
+					if (currentCode !== cleanedCode) {
+						const clickListener =
+							floatingDownloadBtn.onclickBackup || floatingDownloadBtn.onclick
+
+						if (clickListener) {
+							floatingDownloadBtn.removeEventListener('click', clickListener)
+						}
+
+						let filename = container && container.dataset && container.dataset.filename
+						let codeLanguage =
+							container.querySelector('code') &&
+							(container.querySelector('code').dataset.language ||
+								(container
+									.querySelector('code')
+									.className.match(/language-(\w+)/) || [])[1])
+
+						if (!filename) {
+							const extension = codeLanguage
+								? this.getLanguageFileExtension(codeLanguage)
+								: 'txt'
+							filename = `code.${extension}`
+						}
+
+						const newClickListener = () => {
+							const success = polyfills.downloadFile(filename, cleanedCode.trim())
+
+							if (success) {
+								polyfills.classList.add(floatingDownloadBtn, 'copied')
+
+								const downloadIcon = floatingDownloadBtn.querySelector(
+									'.highlightit-download-icon'
+								)
+								const checkIcon =
+									floatingDownloadBtn.querySelector('.highlightit-check-icon')
+
+								if (downloadIcon) downloadIcon.style.display = 'none'
+								if (checkIcon) checkIcon.style.display = 'block'
+
+								setTimeout(() => {
+									polyfills.classList.remove(floatingDownloadBtn, 'copied')
+
+									if (downloadIcon) downloadIcon.style.display = 'block'
+									if (checkIcon) checkIcon.style.display = 'none'
+								}, 2000)
+							}
+						}
+
+						floatingDownloadBtn.onclickBackup = newClickListener
+						floatingDownloadBtn._code = cleanedCode
+						floatingDownloadBtn.addEventListener('click', newClickListener)
+					}
+				}
+
+				const floatingShareBtn = floatingBtnsContainer.querySelector('.highlightit-share')
+				if (floatingShareBtn) {
+					const originalId = container.getAttribute('data-original-id')
+
+					if (originalId) {
+						if (floatingShareBtn._currentBlockId !== originalId) {
+							floatingShareBtn._currentBlockId = originalId
+						}
+					} else if (container.id) {
+						if (floatingShareBtn._currentBlockId !== container.id) {
+							const clickListener = floatingShareBtn.onclick
+
+							if (clickListener) {
+								floatingShareBtn.removeEventListener('click', clickListener)
+							}
+
+							const newClickListener = async () => {
+								const url = new URL(window.location.href)
+								url.hash = container.id
+
+								const success = await polyfills.copyToClipboard(url.toString())
+
+								if (success) {
+									floatingShareBtn.classList.add('copied')
+									floatingShareBtn.innerHTML = cache.svgIcons.check
+
+									setTimeout(() => {
+										floatingShareBtn.classList.remove('copied')
+										floatingShareBtn.innerHTML = cache.svgIcons.share
+									}, 2000)
+								}
+							}
+
+							floatingShareBtn._currentBlockId = container.id
+							floatingShareBtn.addEventListener('click', newClickListener)
+						}
+					} else {
+						this.generateHash(cleanedCode).then((blockId) => {
+							container.id = blockId
+
+							if (floatingShareBtn._currentBlockId !== blockId) {
+								const clickListener = floatingShareBtn.onclick
+
+								if (clickListener) {
+									floatingShareBtn.removeEventListener('click', clickListener)
+								}
+
+								const newClickListener = async () => {
+									const url = new URL(window.location.href)
+									url.hash = blockId
+
+									const success = await polyfills.copyToClipboard(url.toString())
+
+									if (success) {
+										floatingShareBtn.classList.add('copied')
+										floatingShareBtn.innerHTML = cache.svgIcons.check
+
+										setTimeout(() => {
+											floatingShareBtn.classList.remove('copied')
+											floatingShareBtn.innerHTML = cache.svgIcons.share
+										}, 2000)
+									}
+								}
+
+								floatingShareBtn._currentBlockId = blockId
+								floatingShareBtn.addEventListener('click', newClickListener)
+							}
+						})
+					}
+				}
+			} else if (
+				!floatingBtnsContainer &&
+				container.classList.contains('highlightit-no-header')
+			) {
 				const withShare = container.dataset.withShare !== undefined
+				const withDownload = container.dataset.withDownload !== undefined
 				const newFloatingBtns = this.createFloatingButtons(
 					cleanedCode,
 					withShare,
+					withDownload,
 					container
 				)
 				container.appendChild(newFloatingBtns)
@@ -1621,9 +2005,11 @@ class HighlightIt {
 
 			if (showLanguage && language) {
 				const header = container.querySelector('.highlightit-header')
-				const languageLabel = header?.querySelector('.highlightit-language')
-				if (languageLabel) {
-					languageLabel.textContent = displayLabel || language
+				if (header) {
+					const languageLabel = header.querySelector('.highlightit-language')
+					if (languageLabel) {
+						languageLabel.textContent = displayLabel || language
+					}
 				}
 			}
 		} catch (error) {
@@ -1684,28 +2070,46 @@ class HighlightIt {
 		button.addEventListener('click', clickListener)
 	}
 
+	/**
+	 * Find the original element for a live-updated element
+	 * @param {HTMLElement} element - The element to find the original for
+	 * @param {HTMLElement} container - The container element
+	 * @returns {HTMLElement|null} - The original element or null if not found
+	 * @private
+	 */
 	static findOriginalElement(element, container) {
-		let linkId =
-			element.parentElement?.dataset.linkedOriginal ||
-			container?.dataset.linkedOriginal ||
-			element.parentElement?.getAttribute('data-linked-original') ||
-			container?.getAttribute('data-linked-original')
+		const linkedId =
+			(element.parentElement &&
+				element.parentElement.dataset &&
+				element.parentElement.dataset.linkedOriginal) ||
+			(container && container.dataset && container.dataset.linkedOriginal) ||
+			(element.parentElement && element.parentElement.getAttribute('data-linked-original')) ||
+			(container && container.getAttribute('data-linked-original'))
 
-		if (linkId) {
-			return (
-				document.querySelector(`.highlightit-original[data-highlightit-id="${linkId}"]`) ||
-				document.getElementById(linkId)
+		if (linkedId) {
+			return document.querySelector(
+				`.highlightit-original[data-highlightit-id="${linkedId}"]`
 			)
 		}
 
-		if (container?.previousSibling?.classList?.contains('highlightit-original')) {
+		const originalId =
+			(element.parentElement && element.parentElement.getAttribute('data-original-id')) ||
+			(container && container.getAttribute('data-original-id'))
+
+		if (originalId) {
+			return document.getElementById(originalId)
+		}
+
+		if (
+			container &&
+			container.previousSibling &&
+			container.previousSibling.classList &&
+			container.previousSibling.classList.contains('highlightit-original')
+		) {
 			return container.previousSibling
 		}
 
-		const originalId =
-			element.parentElement?.getAttribute('data-original-id') ||
-			container?.getAttribute('data-original-id')
-		return originalId ? document.getElementById(originalId) : null
+		return null
 	}
 
 	/**
@@ -1719,6 +2123,24 @@ class HighlightIt {
 		window.addEventListener('hashchange', () => {
 			this.scrollToAnchor()
 		})
+	}
+
+	/**
+	 * Get file extension from language name
+	 * @param {string} language - The language to convert to file extension
+	 * @returns {string} - The file extension for the language
+	 * @private
+	 */
+	static getLanguageFileExtension(language) {
+		if (!language) return 'txt'
+
+		for (const [ext, lang] of cache.extensionMap.entries()) {
+			if (lang === language.toLowerCase()) {
+				return ext
+			}
+		}
+
+		return language.toLowerCase()
 	}
 }
 
@@ -1743,6 +2165,8 @@ export default HighlightIt
  * @param {boolean} [options.addLines=false] - Whether to add line numbers
  * @param {boolean} [options.withReload=false] - Whether to enable live updates
  * @param {boolean} [options.addShare=false] - Whether to add a share button
+ * @param {boolean} [options.addDownload=false] - Whether to add a download button
+ * @param {string} [options.filename] - The filename to use for the download button
  * @param {string} [options.language] - The language to use for syntax highlighting
  * @param {string} [options.theme] - Theme override for this element ('light', 'dark', or 'auto')
  * @param {number} [options.lineStart] - Starting line number (default is 1, can be positive or negative)
@@ -1767,6 +2191,8 @@ HighlightIt.highlight = function (element, options = {}) {
 		addLines = false,
 		withReload = false,
 		addShare = false,
+		addDownload = false,
+		filename,
 		language,
 		theme,
 		lineStart
@@ -1796,6 +2222,14 @@ HighlightIt.highlight = function (element, options = {}) {
 		element.dataset.withShare = ''
 	}
 
+	if (addDownload) {
+		element.dataset.withDownload = ''
+	}
+
+	if (filename) {
+		element.dataset.filename = filename
+	}
+
 	if (language) {
 		element.dataset.language = language
 	}
@@ -1811,7 +2245,8 @@ HighlightIt.highlight = function (element, options = {}) {
 		showLanguage,
 		addHeader,
 		addLines,
-		addShare
+		addShare,
+		addDownload
 	)
 
 	const container =

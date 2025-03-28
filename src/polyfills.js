@@ -28,7 +28,10 @@ const polyfills = {
 			} catch {
 				return false
 			}
-		})()
+		})(),
+		download: typeof document.createElement('a').download !== 'undefined',
+		blob: typeof Blob !== 'undefined',
+		URL: typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function'
 	},
 
 	requestAnimationFrame: (function () {
@@ -249,6 +252,64 @@ const polyfills = {
 		}
 	},
 
+	downloadFile: function (filename, content, mimeType = 'text/plain') {
+		if (this.supports.blob && this.supports.URL) {
+			try {
+				const blob = new Blob([content], { type: mimeType })
+				const url = URL.createObjectURL(blob)
+
+				if (this.supports.download) {
+					const link = document.createElement('a')
+					link.href = url
+					link.download = filename
+					link.style.display = 'none'
+					document.body.appendChild(link)
+					link.click()
+
+					setTimeout(() => {
+						document.body.removeChild(link)
+						URL.revokeObjectURL(url)
+					}, 100)
+
+					return true
+				} else {
+					window.open(url, '_blank')
+
+					setTimeout(() => {
+						URL.revokeObjectURL(url)
+					}, 100)
+
+					return true
+				}
+			} catch (e) {
+				console.error('Error downloading file:', e)
+			}
+		}
+
+		try {
+			const iframeId = 'highlightit-download-iframe'
+			let iframe = document.getElementById(iframeId)
+
+			if (!iframe) {
+				iframe = document.createElement('iframe')
+				iframe.id = iframeId
+				iframe.style.display = 'none'
+				document.body.appendChild(iframe)
+			}
+
+			const iframeDocument = iframe.contentWindow.document
+			iframeDocument.open('text/html', 'replace')
+			iframeDocument.write(content)
+			iframeDocument.close()
+
+			iframeDocument.execCommand('SaveAs', true, filename)
+			return true
+		} catch (e) {
+			console.error('Legacy download failed:', e)
+			return false
+		}
+	},
+
 	animate: function (element, keyframes, options) {
 		if (!element) return null
 
@@ -307,8 +368,6 @@ const polyfills = {
 	 */
 	updateHasClass: function (container, selector, className, shouldHaveClass) {
 		if (!container || !selector || !className) return
-
-		// If browser supports :has, we don't need this
 		if (this.supports.cssHas) return
 
 		const hasElement = container.querySelector(selector)
