@@ -635,10 +635,10 @@ class HighlightIt {
 
 		if (!language && autoDetect) {
 			const result = this.autoDetectLanguage(code)
-			language = result.language
+			language = result.language || 'unknown'
 
 			element.innerHTML = result.value
-			element.classList.add(`language-${language || 'unknown'}`)
+			element.classList.add(`language-${language}`)
 
 			if (withLines) {
 				this.addLineNumbers(element, code)
@@ -648,13 +648,13 @@ class HighlightIt {
 				const header = container.querySelector('.highlightit-header')
 				if (header) {
 					const languageLabel = header.querySelector('.highlightit-language')
-					if (!languageLabel && language) {
+					if (!languageLabel && result.language) {
 						const newLanguageLabel = document.createElement('span')
 						newLanguageLabel.className = 'highlightit-language'
-						newLanguageLabel.textContent = language
+						newLanguageLabel.textContent = result.language
 						header.insertBefore(newLanguageLabel, header.firstChild)
-					} else if (languageLabel && language) {
-						languageLabel.textContent = language
+					} else if (languageLabel && result.language) {
+						languageLabel.textContent = result.language
 					}
 				}
 			}
@@ -664,14 +664,24 @@ class HighlightIt {
 
 		if (language) {
 			try {
-				const result = hljs.highlight(code, { language })
+				let result
+				try {
+					result = hljs.highlight(code, { language })
+				} catch (e) {
+					console.error(
+						`HighlightIt: Error highlighting with language ${language}`,
+						e,
+						'This might be because highlight.js is not available. Please ensure its script is included in the page.'
+					)
+					result = { value: this.escapeHtml(code) }
+				}
 				element.innerHTML = result.value
 				element.classList.add(`language-${language}`)
 
 				if (withLines) {
 					this.addLineNumbers(element, code)
 				}
-			} catch {
+			} catch (error) {
 				if (autoDetect) {
 					const result = this.autoDetectLanguage(code)
 					element.innerHTML = result.value
@@ -689,6 +699,16 @@ class HighlightIt {
 								languageLabel.textContent = result.language
 							}
 						}
+					}
+				} else {
+					console.error(
+						`HighlightIt: Error highlighting with language ${language}`,
+						error
+					)
+					element.innerHTML = this.escapeHtml(code)
+
+					if (withLines) {
+						this.addLineNumbers(element, code)
 					}
 				}
 			}
@@ -780,8 +800,17 @@ class HighlightIt {
 							}
 						}
 					} else {
-						const result = hljs.highlight(code, { language: detectedLanguage })
-						targetElement.innerHTML = result.value
+						try {
+							const result = hljs.highlight(code, { language: detectedLanguage })
+							targetElement.innerHTML = result.value
+						} catch (e) {
+							console.error(
+								`HighlightIt: Error highlighting with language ${detectedLanguage}`,
+								e,
+								'This might be because highlight.js is not available. Please ensure its script is included in the page.'
+							)
+							targetElement.innerHTML = this.escapeHtml(code)
+						}
 						polyfills.classList.add(targetElement, `language-${detectedLanguage}`)
 					}
 				} else {
@@ -806,24 +835,20 @@ class HighlightIt {
 					10
 				)
 
-				if (oldLineNumbers) {
-					const blockId = container.getAttribute('data-original-id') || container.id
-					const withShare =
-						container.dataset.withShare !== undefined ||
-						element.dataset.withShare !== undefined
+				const currentBlockId = container.getAttribute('data-original-id') || container.id
+				const withShare =
+					container.dataset.withShare !== undefined ||
+					element.dataset.withShare !== undefined
 
-					this.updateLineNumbersForLiveUpdates(
-						oldLineNumbers,
-						lineCount,
-						oldLineCount,
-						lineStart,
-						withShare,
-						blockId,
-						container
-					)
-				} else {
-					this.addLineNumbers(targetElement, code)
-				}
+				this.updateLineNumbersForLiveUpdates(
+					oldLineNumbers,
+					lineCount,
+					oldLineCount,
+					lineStart,
+					withShare,
+					currentBlockId,
+					container
+				)
 			}
 		}
 
@@ -1165,8 +1190,17 @@ class HighlightIt {
 	 * @private
 	 */
 	static autoDetectLanguage(code) {
-		const result = hljs.highlightAuto(code, Array.from(cache.popularLanguages))
-		return result.language ? result : hljs.highlightAuto(code)
+		try {
+			const result = hljs.highlightAuto(code, Array.from(cache.popularLanguages))
+			return result.language ? result : hljs.highlightAuto(code)
+		} catch (e) {
+			console.error(
+				'HighlightIt: Error auto-detecting language',
+				e,
+				'This might be because highlight.js is not available. Please ensure its script is included in the page.'
+			)
+			return { value: this.escapeHtml(code), language: 'unknown' }
+		}
 	}
 
 	/**
@@ -1292,9 +1326,19 @@ class HighlightIt {
 		}
 
 		try {
-			const result = language
-				? hljs.highlight(cleanedCode, { language })
-				: { value: this.escapeHtml(cleanedCode) }
+			let result
+			try {
+				result = language
+					? hljs.highlight(cleanedCode, { language })
+					: { value: this.escapeHtml(cleanedCode) }
+			} catch (e) {
+				console.error(
+					`HighlightIt: Error highlighting with language ${language}`,
+					e,
+					'This might be because highlight.js is not available. Please ensure its script is included in the page.'
+				)
+				result = { value: this.escapeHtml(cleanedCode) }
+			}
 
 			element.innerHTML = result.value
 
