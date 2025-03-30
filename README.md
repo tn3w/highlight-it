@@ -1,11 +1,11 @@
 <p align="center">
-  <a href="https://github.com/librecap/librecap">
-      <picture>
-          <source height="260" media="(prefers-color-scheme: dark)" srcset="https://github.com/tn3w/highlight-it/releases/download/v0.1.4-img/highlight-dark.png">
-          <source height="260" media="(prefers-color-scheme: light)" srcset="https://github.com/tn3w/highlight-it/releases/download/v0.1.4-img/highlight-light.png">
-          <img height="260" alt="HighlightIt Logo" src="https://github.com/tn3w/highlight-it/releases/download/v0.1.4-img/highlight-light.png">
-      </picture>
-  </a>
+	<a href="https://github.com/librecap/librecap">
+		<picture>
+			<source height="260" media="(prefers-color-scheme: dark)" srcset="https://github.com/tn3w/highlight-it/releases/download/v0.1.4-img/highlight-dark.png">
+			<source height="260" media="(prefers-color-scheme: light)" srcset="https://github.com/tn3w/highlight-it/releases/download/v0.1.4-img/highlight-light.png">
+			<img height="260" alt="HighlightIt Logo" src="https://github.com/tn3w/highlight-it/releases/download/v0.1.4-img/highlight-light.png">
+		</picture>
+	</a>
 </p>
 
 <h1 align="center">Highlight-It</h1>
