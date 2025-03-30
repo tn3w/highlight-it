@@ -43,6 +43,8 @@ class HighlightIt {
 			debounceTime = 50
 		} = options
 
+		polyfills.init()
+
 		this.debounceTime = debounceTime
 		this.applyGlobalTheme(theme)
 
@@ -90,31 +92,49 @@ class HighlightIt {
 	 * @returns {Promise<string>} - A 12-character base62 hash
 	 */
 	static async generateHash(input) {
-		const encoder = new TextEncoder()
-		const data = encoder.encode(input)
-
-		const hashBuffer = await crypto.subtle.digest('SHA-256', data)
-
-		const hashArray = Array.from(new Uint8Array(hashBuffer))
-
-		let base62Hash = ''
-		let value = 0n
-
-		for (let i = 0; i < hashArray.length; i++) {
-			value = (value << 8n) | BigInt(hashArray[i])
-		}
-
-		while (value > 0 || base62Hash.length < 12) {
-			const remainder = Number(value % 62n)
-			base62Hash = BASE62_CHARS[remainder] + base62Hash
-			value = value / 62n
-
-			if (value === 0n && base62Hash.length < 12) {
-				base62Hash = '0' + base62Hash
+		try {
+			if (!window.crypto || !window.crypto.subtle) {
+				return polyfills.simpleHash(input)
 			}
-		}
 
-		return base62Hash.slice(-12).padStart(12, '0')
+			const TextEncoderClass = window.TextEncoder || polyfills.TextEncoder
+			if (!TextEncoderClass) {
+				return polyfills.simpleHash(input)
+			}
+
+			const encoder = new TextEncoderClass()
+			const data = encoder.encode(input)
+
+			const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+
+			const hashArray = Array.from(new Uint8Array(hashBuffer))
+
+			if (typeof BigInt === 'undefined' && polyfills.BigIntPolyfill) {
+				return polyfills.simpleHash(input)
+			}
+
+			let base62Hash = ''
+			let value = 0n
+
+			for (let i = 0; i < hashArray.length; i++) {
+				value = (value << 8n) | BigInt(hashArray[i])
+			}
+
+			while (value > 0 || base62Hash.length < 12) {
+				const remainder = Number(value % 62n)
+				base62Hash = BASE62_CHARS[remainder] + base62Hash
+				value = value / 62n
+
+				if (value === 0n && base62Hash.length < 12) {
+					base62Hash = '0' + base62Hash
+				}
+			}
+
+			return base62Hash.slice(-12).padStart(12, '0')
+		} catch (err) {
+			console.warn('Error generating hash:', err)
+			return polyfills.simpleHash(input)
+		}
 	}
 
 	/**
@@ -197,9 +217,16 @@ class HighlightIt {
 		} else if (container.id) {
 			return container.id
 		} else {
-			const newId = await this.generateHash(newCode)
-			container.id = newId
-			return newId
+			try {
+				const newId = await this.generateHash(newCode)
+				container.id = newId
+				return newId
+			} catch (err) {
+				console.error('Error generating hash:', err)
+				const fallbackId = 'highlightit-' + Math.random().toString(36).substring(2, 15)
+				container.id = fallbackId
+				return fallbackId
+			}
 		}
 	}
 
@@ -336,7 +363,7 @@ class HighlightIt {
 		let originalElement = null
 		const withLiveUpdates = element.dataset.withReload !== undefined
 
-		if (element.textContent) {
+		if (element.textContent !== null && element.textContent !== undefined) {
 			element.textContent = element.textContent.trim()
 		}
 
@@ -693,12 +720,17 @@ class HighlightIt {
 				this.addLineNumbers(element, code)
 			}
 
-			if (showLanguage && !noHeader && !displayLabel) {
+			if (showLanguage && !noHeader) {
 				const header = container.querySelector('.highlightit-header')
 				if (header) {
 					const languageLabel = header.querySelector('.highlightit-language')
 					if (languageLabel) {
-						languageLabel.textContent = displayLabel || language
+						languageLabel.textContent = language
+					} else if (language) {
+						const newLanguageLabel = document.createElement('span')
+						newLanguageLabel.className = 'highlightit-language'
+						newLanguageLabel.textContent = language
+						header.insertBefore(newLanguageLabel, header.firstChild)
 					}
 				}
 			}
@@ -775,7 +807,9 @@ class HighlightIt {
 	 * @private
 	 */
 	static setupLiveUpdates(element, container, autoDetect, showLanguage, withShare) {
-		if (!polyfills.supports.MutationObserver) {
+		const MutationObserverClass = window.MutationObserver || polyfills.MutationObserver
+		if (!MutationObserverClass) {
+			console.warn('HighlightIt: Live updates not supported in this browser')
 			return
 		}
 
@@ -1114,10 +1148,10 @@ class HighlightIt {
 		const header = document.createElement('div')
 		header.className = 'highlightit-header'
 
-		if (showLanguage && displayLabel) {
+		if (showLanguage) {
 			const languageLabel = document.createElement('span')
 			languageLabel.className = 'highlightit-language'
-			languageLabel.textContent = displayLabel
+			languageLabel.textContent = displayLabel || 'unknown'
 			header.appendChild(languageLabel)
 		} else {
 			header.style.justifyContent = 'flex-end'
@@ -2009,6 +2043,11 @@ class HighlightIt {
 					const languageLabel = header.querySelector('.highlightit-language')
 					if (languageLabel) {
 						languageLabel.textContent = displayLabel || language
+					} else if (language) {
+						const newLanguageLabel = document.createElement('span')
+						newLanguageLabel.className = 'highlightit-language'
+						newLanguageLabel.textContent = displayLabel || language
+						header.insertBefore(newLanguageLabel, header.firstChild)
 					}
 				}
 			}
@@ -2087,9 +2126,12 @@ class HighlightIt {
 			(container && container.getAttribute('data-linked-original'))
 
 		if (linkedId) {
-			return document.querySelector(
+			const originalElement = document.querySelector(
 				`.highlightit-original[data-highlightit-id="${linkedId}"]`
 			)
+			if (originalElement) {
+				return originalElement
+			}
 		}
 
 		const originalId =
@@ -2097,7 +2139,10 @@ class HighlightIt {
 			(container && container.getAttribute('data-original-id'))
 
 		if (originalId) {
-			return document.getElementById(originalId)
+			const idElement = document.getElementById(originalId)
+			if (idElement) {
+				return idElement
+			}
 		}
 
 		if (
