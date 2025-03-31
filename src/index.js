@@ -18,7 +18,7 @@ class HighlightIt {
 	/**
 	 * Initialize HighlightIt by finding and highlighting all matching elements
 	 * @param {Object} options - Configuration options
-	 * @param {string} [options.selector='.highlightit'] - CSS selector for elements to highlight
+	 * @param {string} [options.selector='.highlight-it'] - CSS selector for elements to highlight
 	 * @param {boolean} [options.autoDetect=true] - Whether to auto-detect language if not specified
 	 * @param {boolean} [options.addCopyButton=true] - Whether to add a copy button to code blocks
 	 * @param {boolean} [options.showLanguage=true] - Whether to show the language label

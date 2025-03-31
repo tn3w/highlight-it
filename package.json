@@ -1,6 +1,6 @@
 {
 	"name": "highlight-it",
-	"version": "0.2.5",
+	"version": "0.2.6",
 	"description": "A lightweight syntax highlighting library with themes, line numbers, and copy functionality",
 	"main": "dist/highlight-it.js",
 	"jsdelivr": "dist/highlight-it.js",

@@ -28,7 +28,7 @@ if __name__ == "__main__":
 Add highlight-it using this script:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/highlight-it@0.2.5/dist/highlight-it-min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight-it@0.2.6/dist/highlight-it-min.js"></script>
 <script>
 	window.addEventListener('load', () => {
 		HighlightIt.init();
