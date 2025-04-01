@@ -1391,6 +1391,10 @@ class HighlightIt {
 	 */
 	static autoDetectLanguage(code) {
 		try {
+			if (!code || code.trim().length < 3) {
+				return { value: this.escapeHtml(code), language: 'plaintext' }
+			}
+
 			const result = hljs.highlightAuto(code, Array.from(cache.popularLanguages))
 			return result.language ? result : hljs.highlightAuto(code)
 		} catch (e) {
