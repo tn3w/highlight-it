@@ -3,6 +3,7 @@
 Thank you for your interest in contributing to Highlight-It! This document provides guidelines and instructions for contributing to the project.
 
 ## Table of Contents
+
 - [Getting Started](#getting-started)
 - [Development Setup](#development-setup)
 - [Making Changes](#making-changes)
@@ -24,12 +25,14 @@ Before you start contributing, please:
 ## Development Setup 🛠️
 
 1. Clone your fork:
+
 ```bash
 git clone https://github.com/YOUR_USERNAME/highlight-it.git
 cd highlight-it
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
@@ -39,11 +42,13 @@ npm install
 ## Making Changes ✨
 
 ### Branch Naming
+
 - Feature branches: `feature/your-feature-name`
 - Bug fixes: `fix/your-fix-name`
 - Documentation: `docs/your-doc-name`
 
 ### Commit Messages
+
 We follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```
@@ -55,6 +60,7 @@ type(scope): description
 ```
 
 Types:
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation changes
@@ -64,6 +70,7 @@ Types:
 - `chore`: Maintenance tasks
 
 Example:
+
 ```
 feat(theme): add support for custom theme creation
 
@@ -86,6 +93,7 @@ We follow these coding standards:
 - Add error handling where appropriate
 
 Example:
+
 ```javascript
 /**
  * Creates a new code block with the specified options
@@ -95,8 +103,8 @@ Example:
  * @returns {HTMLElement} The created code block element
  */
 function createCodeBlock(options) {
-  const { language, withLines = false } = options;
-  // ... implementation
+    const { language, withLines = false } = options;
+    // ... implementation
 }
 ```
 
@@ -108,6 +116,7 @@ function createCodeBlock(options) {
 Before submitting a pull request:
 
 1. Run the test suite:
+
 ```bash
 npm test
 ```
@@ -128,6 +137,7 @@ When adding new features or changing existing ones:
 ## Security 🔒
 
 For security-related concerns, please refer to our [Security Policy](SECURITY.md). This includes:
+
 - How to report vulnerabilities
 - What to report
 - Our security commitments
@@ -150,4 +160,4 @@ Your contributions help make Highlight-It better for everyone. We appreciate you
 
 <p align="center">
   Made with ❤️ by the Highlight-It Team
-</p> 
+</p>
